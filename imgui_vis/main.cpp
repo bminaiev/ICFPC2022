@@ -49,6 +49,7 @@ constexpr int tSplitPoint = 2;
 constexpr int tSplitX = 3;
 constexpr int tSplitY = 4;
 constexpr int tMerge = 5;
+constexpr int tSwap = 6;
 
 int N, M;
 vector<vector<Color>> colors;
@@ -72,12 +73,14 @@ struct Instruction {
             sprintf(buf, "cut [%s] [Y] [%d]", id.c_str(), N - y);
         } else if (type == tMerge) {
             sprintf(buf, "merge [%s] [%s]", id.c_str(), oid.c_str());
+        } else if (type == tSwap) {
+            sprintf(buf, "swap [%s] [%s]", id.c_str(), oid.c_str());
         } else assert(false);
         return buf;
     }
 };
 
-Instruction ColorIns(string i, Color c) {
+Instruction ColorIns(const string& i, Color c) {
     Instruction res;
     res.type = tColor;
     res.id = i;
@@ -85,7 +88,7 @@ Instruction ColorIns(string i, Color c) {
     return res;
 }
 
-Instruction SplitPointIns(string i, int x, int y) {
+Instruction SplitPointIns(const string& i, int x, int y) {
     Instruction res;
     res.type = tSplitPoint;
     res.id = i;
@@ -94,7 +97,7 @@ Instruction SplitPointIns(string i, int x, int y) {
     return res;
 }
 
-Instruction SplitXIns(string i, int x) {
+Instruction SplitXIns(const string& i, int x) {
     Instruction res;
     res.type = tSplitX;
     res.id = i;
@@ -102,7 +105,7 @@ Instruction SplitXIns(string i, int x) {
     return res;
 }
 
-Instruction SplitYIns(string i, int y) {
+Instruction SplitYIns(const string& i, int y) {
     Instruction res;
     res.type = tSplitY;
     res.id = i;
@@ -110,9 +113,17 @@ Instruction SplitYIns(string i, int y) {
     return res;
 }
 
-Instruction MergeIns(string i1, string i2) {
+Instruction MergeIns(const string& i1, string i2) {
     Instruction res;
     res.type = tMerge;
+    res.id = i1;
+    res.oid = i2;
+    return res;
+}
+
+Instruction SwapIns(const string& i1, const string& i2) {
+    Instruction res;
+    res.type = tSwap;
     res.id = i1;
     res.oid = i2;
     return res;
@@ -259,6 +270,51 @@ struct Painter {
         return true;
     }
 
+    bool doSwap(const string& i1, const string& i2) {
+        return false;
+        if (blocks.find(i1) == blocks.end() || blocks.find(i2) == blocks.end())
+            return false;
+
+        const auto& bu = blocks[i1];
+        const auto& bv = blocks[i2];
+        opsScore += round(1.0 * N * M / max((bu.r2 - bu.r1) * (bu.c2 - bu.c1),
+                                            (bv.r2 - bv.r1) * (bv.c2 - bv.c1)));
+        Block nb;
+        if (bu.r2 == bv.r1 || bu.r1 == bv.r2) {
+            if (bu.c1 == bv.c1 && bu.c2 == bv.c2) {
+                if (bu.r2 == bv.r1) {
+                    nb = bu;
+                    nb.r2 = bv.r2;
+                } else {
+                    nb = bv;
+                    nb.r2 = bu.r2;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        if (bu.c2 == bv.c1 || bu.c1 == bv.c2) {
+            if (bu.r1 == bv.r1 && bu.r2 == bv.r2) {
+                if (bu.c2 == bv.c1) {
+                    nb = bu;
+                    nb.c2 = bv.c2;
+                } else {
+                    nb = bv;
+                    nb.c2 = bu.c2;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        blocks.erase(blocks.find(i1));
+        blocks.erase(blocks.find(i2));
+        lastBlockId++;
+        blocks[to_string(lastBlockId)] = nb;
+        return true;
+    }
+
     bool doInstruction(const Instruction& ins) {
         if (ins.type == tColor) {
             return doColor(ins.id, ins.color);            
@@ -270,20 +326,29 @@ struct Painter {
             return doSplitY(ins.id, ins.y);
         } else if (ins.type == tMerge) {
             return doMerge(ins.id, ins.oid);
+        } else if (ins.type == tSwap) {
+            return doSwap(ins.id, ins.oid);
         } else return false;
     }
 
-    int totalScore() const {
+    int totalScore(const vector<vector<Color>>& targetColors) const {
         double res = 0;
+        // cerr << "opsScore = " << opsScore << endl;
+        // cerr << clr.size() << " " << targetColors.size() << endl;
         for (int i = 0; i < N; i++)
             for (int j = 0; j < M; j++) {
                 double d = 0;
                 for (int q = 0; q < 4; q++)
-                    d += sqr(clr[i][j][q] - colors[i][j][q]);
+                    d += sqr(clr[i][j][q] - targetColors[i][j][q]);
                 res += sqrt(d);
             }
         return round(res * 0.005 + opsScore);
     }
+};
+
+struct Input {
+    int N, M;
+    vector<vector<Color>> colors;
 };
 
 int selected_idx, currentTestId;
@@ -296,26 +361,32 @@ double scale = 1;
 double shiftX, shiftY;
 
 
-void readInput(const string& fname) {
+Input readInput(const string& fname) {
     freopen(fname.c_str(), "r", stdin);
-    cin >> N >> M;
-    colors.assign(N, vector<Color>(M, Color()));
-    for (int i = 0; i < N; i++)
-        for (int j = 0; j < M; j++)
+    Input res;
+    cin >> res.N >> res.M;
+    res.colors.assign(res.N, vector<Color>(res.M, Color()));
+    for (int i = 0; i < res.N; i++)
+        for (int j = 0; j < res.M; j++)
             for (int q = 0; q < 4; q++)
-                cin >> colors[i][j][q];
-    scale = 1;
-    shiftX = shiftY = 0;
+                cin >> res.colors[i][j][q];
+    return res;
+}
+
+void readInputAndStoreAsGlobal(const string& fname) {
+    Input i = readInput(fname);
+    N = i.N;
+    M = i.M;
+    colors = i.colors;
 }
 
 unordered_map<int, int> myScores;
 
-Solution loadSolution(string filepath) {
+Solution loadSolution(const Input& in, string filepath) {
     Solution res;
     res.score = -1;
-    /*
     ifstream infile(filepath);
-    string s, token;
+    string s, token, id, oid;
     int val;
     while (getline(infile, s)) {
         string cs = "";
@@ -325,22 +396,45 @@ Solution loadSolution(string filepath) {
                 else cs += c;
             }
 
-        if (cs.substr(0, 3) == 'cut') {
+        if (cs.substr(0, 3) == "cut") {
             stringstream ss(cs.substr(4));
+            ss >> id;
             ss >> token;
+            ss >> val;
+            // cerr << cs << ": " << id << " " << token << " " << val << "(" << in.N << " " << in.M << ")" << endl;
             if (token == "X") {
-                ss >> val;
-
+                res.ins.push_back(SplitXIns(id, val));
+            } else if (token == "Y") {
+                res.ins.push_back(SplitYIns(id, in.N - val));
+            } else {
+                res.ins.push_back(SplitPointIns(id, stoi(token), val));
             }
+        } else if (cs.substr(0, 5) == "merge") {
+            stringstream ss(cs.substr(6));
+            ss >> id >> oid;
+            res.ins.push_back(MergeIns(id, oid));
+        } else if (cs.substr(0, 4) == "swap") {
+            stringstream ss(cs.substr(5));
+            ss >> id >> oid;
+            res.ins.push_back(SwapIns(id, oid));
+        } else if (cs.substr(0, 5) == "color") {
+            stringstream ss(cs.substr(6));
+            Color c;
+            ss >> id >> c[0] >> c[1] >> c[2] >> c[3];
+            res.ins.push_back(ColorIns(id, c));
+        } else {
+            cerr << "Unsupported instruction: " << cs << " in file " << filepath << "\n";
+            return res;
         }
-    }*/
+    }
     return res;
 }
 
-void updateStandingsAndMyScores() {
-    apiUpdateStandings();
+void updateStandingsAndMyScores(bool useApiUpdate) {
+    if (useApiUpdate) apiUpdateStandings();
     std::ofstream ofs("my_scores.txt");
     string solutionsPath = "../solutions/";
+    string inputsPath = "../inputs/";
     for (const auto & entry : fs::directory_iterator(solutionsPath)) {
         string s = entry.path().string();
 
@@ -353,7 +447,19 @@ void updateStandingsAndMyScores() {
         int test_id;
         sscanf(s.substr(i, j).c_str(), "%d", &test_id);
 
-        Solution sol = loadSolution(s);
+        Input in = readInput(inputsPath + to_string(test_id) + ".txt");
+        cerr << "read input " << in.N << "x" << in.M << endl;
+        Solution sol = loadSolution(in, s);
+        Painter p(in.N, in.M);
+        for (const auto& ins : sol.ins) {
+            if (!p.doInstruction(ins)) {
+                cerr << "Bad instruction in " + s + ": " + ins.text() + "\n";
+                sol.score = -100;
+                break;
+            }
+        }
+        if (sol.score > -99) sol.score = p.totalScore(in.colors);
+        cerr << test_id << " " << sol.score << endl;
         myScores[test_id] = round(sol.score);
     }
     ofs.close();
@@ -370,12 +476,14 @@ void updateStandingsTimed() {
         lastUpdateTime = curTime;
     }*/
     for (int i = 0; running; i++) {
-        if (i % 30 == 0)
-            updateStandingsAndMyScores();
         #ifdef _WIN32
-          Sleep(1000);
+            if (i % 30 == 0)
+                updateStandingsAndMyScores(false);
+            Sleep(1000);
         #else
-          sleep(1);
+            if (i % 30 == 0)
+                updateStandingsAndMyScores(true);
+            sleep(1);
         #endif
     }
 }
@@ -385,6 +493,10 @@ void fileWindow() {
         // updateStandingsTimed();
         string inputsPath = "../inputs/";
         string solutionsPath = "../solutions/";
+
+        if (ImGui::Button("Update")) {
+            updateStandingsAndMyScores(true);
+        }
 
         vector<pair<int, string>> tests;
         for (const auto & entry : fs::directory_iterator(inputsPath)) {
@@ -415,19 +527,27 @@ void fileWindow() {
                 string bName = "Load " + to_string(tid);
                 if (ImGui::Button(bName.c_str())) {
                     currentTestId = tests[idx].first;
-                    readInput(tests[idx].second);
+                    readInputAndStoreAsGlobal(tests[idx].second);
+                    cerr << "load " << tid << " " << N << " " << M << endl;
                 }
                 ImGui::TableNextColumn();
+                ImGui::Text("%d", myScores[tests[idx].first]);                
+                ImGui::SameLine(55);
                 bName = "Submit " + to_string(tid);
                 if (ImGui::Button(bName.c_str())) {
                     apiSubmit(tests[idx].first);
                 }
-                ImGui::SameLine(85);
-                ImGui::Text("%d", myScores[tests[idx].first]);                
+                
                 if (idx < testResults.size()) {
                     assert(get<0>(testResults[idx]) == tests[idx].first);
                     ImGui::TableNextColumn();
                     ImGui::Text("%d", get<1>(testResults[idx]));
+                    ImGui::SameLine(55);
+                    bName = "Download " + to_string(tid);
+                    if (ImGui::Button(bName.c_str())) {
+                        apiDownload(tests[idx].first);
+                    }
+
                     ImGui::TableNextColumn();
                     ImGui::Text("%d", get<2>(testResults[idx]));
                     ImGui::TableNextColumn();
@@ -604,7 +724,7 @@ void solveDP() {
             return;
         }
     }
-    msg += "Painter score: " + to_string(painter.totalScore()) + "\n";
+    msg += "Painter score: " + to_string(painter.totalScore(colors)) + "\n";
     string fname = "../solutions/" + to_string(currentTestId) + ".txt";
     freopen(fname.c_str(), "w", stdout);
     for (const auto& i : res.ins) {
@@ -962,7 +1082,7 @@ void solveGena() {
             return;
         }
     }
-    msg += "Painter score: " + to_string(painter.totalScore()) + "\n";
+    msg += "Painter score: " + to_string(painter.totalScore(colors)) + "\n";
     res.score = round(res.score);
     string fname = "../solutions/" + to_string(currentTestId) + ".txt";
     freopen(fname.c_str(), "w", stdout);
@@ -974,6 +1094,7 @@ void solveGena() {
 
 void optsWindow() {
     if (ImGui::Begin("Solution")) {
+        ImGui::Text("Current test: %d", currentTestId);
         ImGui::Checkbox("SplitX", &useSplitX);
         ImGui::Checkbox("SplitY", &useSplitY);
         ImGui::Checkbox("SplitPoint", &useSplitPoint);
@@ -995,7 +1116,7 @@ void optsWindow() {
                 solveThread.detach();
             }
         }
-        ImGui::Text("%s", msg.c_str());
+        ImGui::Text("%s\n%s", msg.c_str(), requestResult.c_str());
     }
     ImGui::End();
 }

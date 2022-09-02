@@ -6,11 +6,11 @@ using namespace std;
 
 vector<string> standings;
 vector<tuple<int, int, int>> testResults;
-string submitResult;
+string requestResult;
 
 void apiUpdateStandings() {
     #ifdef _WIN32
-      char cmd[] = "python3 ..\\api.py standings";
+      char cmd[] = "python ..\\api.py standings";
     #else
       char cmd[] = "python3 ../api.py standings";
     #endif
@@ -37,15 +37,31 @@ void apiUpdateStandings() {
 void apiSubmit(int task_id) {
     string sid = to_string(task_id);
     #ifdef _WIN32
-      string cmd = "python3 ..\\api.py submit " + sid + " ..\\solutions\\" + sid + ".txt";
+      string cmd = "python ..\\api.py submit " + sid + " ..\\solutions\\" + sid + ".txt";
     #else
       string cmd = "python3 ../api.py submit " + sid + " ../solutions/" + sid + ".txt";
     #endif
     system(cmd.c_str());
-    ifstream infile("tests.txt");
-    submitResult = "";
+    ifstream infile("req_result.txt");
+    requestResult = "";
     string s;
     while (getline(infile, s)) {
-        submitResult += s;
+        requestResult += s;
+    }
+}
+
+void apiDownload(int task_id) {
+    string sid = to_string(task_id);
+    #ifdef _WIN32
+      string cmd = "python ..\\api.py download " + sid + " ..\\solutions\\" + sid + ".txt";
+    #else
+      string cmd = "python3 ../api.py download " + sid + " ../solutions/" + sid + ".txt";
+    #endif
+    system(cmd.c_str());
+    ifstream infile("req_result.txt");
+    requestResult = "";
+    string s;
+    while (getline(infile, s)) {
+        requestResult += s;
     }
 }
