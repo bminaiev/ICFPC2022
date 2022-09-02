@@ -190,7 +190,10 @@ void processMouse() {
 Solution getInstructions(string id, int r1, int c1, int r2, int c2) {
     ll key = ((r1 * M + c1) * ll(N) + r2) * ll(M) + c2;
     if (mem.find(key) != mem.end()) {
-        return mem[key];
+        auto res = mem[key];
+        for (size_t w = 0; w < res.ins.size(); w++)
+            res.ins[w].id = id + res.ins[w].id;
+        return res;
     }
     cerr << r1 << "," << c1 << " " << r2 << "," << c2 << endl;
 
@@ -207,7 +210,7 @@ Solution getInstructions(string id, int r1, int c1, int r2, int c2) {
     for (int q = 0; q < 4; q++)
         sum[q] /= total;
 
-    int penalty = round(5.0 * N * M / ((r2 - r1) * (c2 - c1)));
+    double penalty = round(5.0 * N * M / ((r2 - r1) * (c2 - c1)));
     double colorPenalty = 0.0;
     for (int r = r1; r < r2; r++)
         for (int c = c1; c < c2; c++) {
@@ -216,38 +219,43 @@ Solution getInstructions(string id, int r1, int c1, int r2, int c2) {
                 ssq += sqr(sum[q] - colors[r][c][q]);
             colorPenalty += sqrt(ssq);
         }
-    penalty += round(colorPenalty * 0.005);
+    penalty += colorPenalty * 0.005;
 
     Solution res;
-    res.ins.push_back(doColor(id, sum));
+    res.ins.push_back(doColor("", sum));
     res.score = penalty;
 
-    int cscore = round(7.0 * N * M / ((r2 - r1) * (c2 - c1)));
+    double cscore = 7.0 * N * M / ((r2 - r1) * (c2 - c1));
     for (int y = r1 + S; y < r2; y += S) {
-        Solution s1 = getInstructions(id + ".1", r1, c1, y, c2);
-        Solution s2 = getInstructions(id + ".0", y, c1, r2, c2);
+        Solution s1 = getInstructions(".1", r1, c1, y, c2);
+        Solution s2 = getInstructions(".0", y, c1, r2, c2);
         if (cscore + s1.score + s2.score < res.score) {
             res.score = cscore + s1.score + s2.score;
             res.ins.clear();
-            res.ins.push_back(doSplitY(id, N - y));
+            res.ins.push_back(doSplitY("", N - y));
             res.ins.insert(res.ins.end(), s1.ins.begin(), s1.ins.end());
             res.ins.insert(res.ins.end(), s2.ins.begin(), s2.ins.end());
         }
     }
-/*
+
     for (int x = c1 + S; x < c2; x += S) {
-        Solution s1 = getInstructions(id + ".0", r1, c1, r2, x);
-        Solution s2 = getInstructions(id + ".1", r1, x, r2, c2);
+        Solution s1 = getInstructions(".0", r1, c1, r2, x);
+        Solution s2 = getInstructions(".1", r1, x, r2, c2);
         if (cscore + s1.score + s2.score < res.score) {
             res.score = cscore + s1.score + s2.score;
             res.ins.clear();
-            res.ins.push_back(doSplitX(id, x - c1));
+            res.ins.push_back(doSplitX("", x));
             res.ins.insert(res.ins.end(), s1.ins.begin(), s1.ins.end());
             res.ins.insert(res.ins.end(), s2.ins.begin(), s2.ins.end());
         }
     }
-*/
+
+    // cerr << r1 << "," << c1 << " " << r2 << "," << c2 << " - ";
+    // for (const auto& i : res.ins) cerr << " " << i.text();
+    // cerr << endl;
     mem[key] = res;
+    for (size_t w = 0; w < res.ins.size(); w++)
+        res.ins[w].id = id + res.ins[w].id;
     return res;
 }
 
@@ -271,6 +279,7 @@ void optsWindow() {
             for (const auto& i : res.ins) {
                 cout << i.text() << endl;
             }
+            fclose(stdout);
         }
         ImGui::Text("%s", msg.c_str());
     }
