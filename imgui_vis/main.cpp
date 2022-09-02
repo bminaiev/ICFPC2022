@@ -12,6 +12,7 @@
 
 #include "sdl_system.h"
 
+#include <random>
 #include <functional>
 #include <filesystem>
 #include <iostream>
@@ -25,7 +26,7 @@
 #include <tuple>
 #include <chrono>
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #else
 #include <unistd.h>
 #endif
@@ -35,6 +36,9 @@
 using namespace std;
 namespace fs = std::filesystem;
 
+typedef std::chrono::high_resolution_clock Time;
+typedef std::chrono::milliseconds chrono_ms;
+    
 #define forn(i, N) for (int i = 0; i < (int)(N); i++)
 #define sqr(x) (x)*(x)
 using ll = long long;
@@ -347,7 +351,11 @@ void updateStandingsTimed() {
     for (int i = 0; running; i++) {
         if (i % 30 == 0)
             updateStandingsAndMyScores();
-        sleep(1);
+        #ifdef _WIN32
+          Sleep(1);
+        #else
+          sleep(1);
+        #endif
     }
 }
 
@@ -576,12 +584,24 @@ void solveDP() {
     fclose(stdout);
 }
 
+int dp[20100][20100];
+int aux[201][201];
+
 void solveGena() {
+    if (S < 2) {
+      msg = "sorry, S must be at least 2";
+      return;
+    }
     if (N % S != 0 || M % S != 0) {
       msg = "sorry, N and M should be divisible by S";
       return;
     }
-    auto start_time = 1.0 * clock() / CLOCKS_PER_SEC;
+    auto start_time = Time::now();
+    auto GetTime = [&]() {
+      auto cur_time = Time::now();
+      std::chrono::duration<double> fs = cur_time - start_time;
+      return std::chrono::duration_cast<chrono_ms>(fs).count();
+    };
     msg = "Running...";
     int n = N / S;
     int m = M / S;
@@ -602,7 +622,6 @@ void solveGena() {
     for (int i = 0; i <= MAX_D; i++) {
       SQRT[i] = sqrt(i);
     }
-    vector<vector<vector<vector<int>>>> dp(n + 1, vector<vector<vector<int>>>(m + 1, vector<vector<int>>(n + 1, vector<int>(m + 1))));
     int mode = 0;
     auto PaintCost = [&](int x, int y) -> int {
       assert(x > 0 && y > 0);
@@ -624,18 +643,28 @@ void solveGena() {
       cand2    += llround(1.0 * n / max(x, m - x));
       return ret + min(cand1, cand2);
     };
+    {
+      assert(N == M);
+      int tmp = 0;
+      for (int xa = 0; xa < n; xa++) {
+        for (int xb = xa + 1; xb <= n; xb++) {
+          aux[xa][xb] = tmp++;
+        }
+      }
+    }
+    mt19937 rng(58);
     for (int xa = n - 1; xa >= 0; xa--) {
-      auto cur_time = 1.0 * clock() / CLOCKS_PER_SEC;
-      msg = "n = " + to_string(n) + ", xa = " + to_string(xa) + ", time = " + to_string(cur_time - start_time) + " s";
+      auto time_elapsed = GetTime();
+      msg = "n = " + to_string(n) + ", xa = " + to_string(xa) + ", time = " + to_string(time_elapsed) + " s";
       for (int ya = m - 1; ya >= 0; ya--) {
         for (int xb = xa + 1; xb <= n; xb++) {
           for (int yb = ya + 1; yb <= m; yb++) {
             int ft = (int) 1e9;
             for (int x = xa + 1; x < xb; x++) {
-              ft = min(ft, dp[xa][ya][x][yb] + dp[x][ya][xb][yb]);
+              ft = min(ft, dp[aux[xa][x]][aux[ya][yb]] + dp[aux[x][xb]][aux[ya][yb]]);
             }
             for (int y = ya + 1; y < yb; y++) {
-              ft = min(ft, dp[xa][ya][xb][y] + dp[xa][y][xb][yb]);
+              ft = min(ft, dp[aux[xa][xb]][aux[ya][y]] + dp[aux[xa][xb]][aux[y][yb]]);
             }
             int area = (xb - xa) * (yb - ya) * S * S;
             Color paint_into;
@@ -644,42 +673,56 @@ void solveGena() {
               paint_into[k] = (2 * sum + area) / (2 * area);
             }
             long long penalty = 1000 * PaintCost((mode & 1) ? xb : n - xa, (mode & 2) ? yb : m - ya);
-            double diff = 0;
-            for (int y = ya * S; y < yb * S; y++) {
-              for (int x = xa * S; x < xb * S; x++) {
-                int sum_sq = 0;
-                for (int k = 0; k < 4; k++) {
-                  sum_sq += sqr(colors[y][x][k] - paint_into[k]);
-                }
-                diff += SQRT[sum_sq];
-              }
-              if (penalty + llround(diff * 5) >= ft) {
-                break;
-              }
-            }
-            penalty += llround(diff * 5);
             if (penalty < ft) {
-              ft = penalty;
+              double diff_est = 0;
+              if (area >= S) {
+                for (int y = ya * S; y < yb * S; y++) {
+                  int x = xa * S + (int) (rng() % (xb * S - xa * S));
+                  int sum_sq = 0;
+                  for (int k = 0; k < 4; k++) {
+                    sum_sq += sqr(colors[y][x][k] - paint_into[k]);
+                  }
+                  diff_est += SQRT[sum_sq];
+                }
+              }
+              diff_est *= xb * S - xa * S;
+              if (penalty + llround(diff_est * 5 * 0.8) < ft) {
+                double diff = 0;
+                for (int y = ya * S; y < yb * S; y++) {
+                  for (int x = xa * S; x < xb * S; x++) {
+                    int sum_sq = 0;
+                    for (int k = 0; k < 4; k++) {
+                      sum_sq += sqr(colors[y][x][k] - paint_into[k]);
+                    }
+                    diff += SQRT[sum_sq];
+                  }
+                  if (penalty + llround(diff * 5) >= ft) {
+                    break;
+                  }
+                }
+                penalty += llround(diff * 5);
+                ft = min(ft, (int) penalty);
+              }
             }
-            dp[xa][ya][xb][yb] = ft;
+            dp[aux[xa][xb]][aux[ya][yb]] = ft;
           }
         }
       }
     }
-    msg = "dp = " + to_string(dp[0][0][n][m] / 1000);
+    msg = "dp = " + to_string(dp[aux[0][n]][aux[0][m]] / 1000);
     vector<pair<array<int, 4>, Color>> rects;
     vector<vector<int>> rect_id(n, vector<int>(m, -1));
     function<void(int, int, int, int)> Reconstruct = [&](int xa, int ya, int xb, int yb) {
-      int ft = dp[xa][ya][xb][yb];
+      int ft = dp[aux[xa][xb]][aux[ya][yb]];
       for (int x = xa + 1; x < xb; x++) {
-        if (dp[xa][ya][x][yb] + dp[x][ya][xb][yb] == ft) {
+        if (dp[aux[xa][x]][aux[ya][yb]] + dp[aux[x][xb]][aux[ya][yb]] == ft) {
           Reconstruct(xa, ya, x, yb);
           Reconstruct(x, ya, xb, yb);
           return;
         }
       }
       for (int y = ya + 1; y < yb; y++) {
-        if (dp[xa][ya][xb][y] + dp[xa][y][xb][yb] == ft) {
+        if (dp[aux[xa][xb]][aux[ya][y]] + dp[aux[xa][xb]][aux[y][yb]] == ft) {
           Reconstruct(xa, ya, xb, y);
           Reconstruct(xa, y, xb, yb);
           return;
@@ -700,7 +743,7 @@ void solveGena() {
     };
     Reconstruct(0, 0, n, m);
     Solution res;
-    res.score = dp[0][0][n][m] / 1000;
+    res.score = dp[aux[0][n]][aux[0][m]] / 1000;
     if (mode == 0) {
       int rect_cnt = (int) rects.size();
       vector<vector<int>> graph(rect_cnt);
@@ -759,7 +802,7 @@ void solveGena() {
           res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
           idx += 1;
         }
-        if (xa > 0 && ya > 0) {
+        if (xa > 0 && ya > 0) {                   
           res.ins.push_back(SplitPointIns(to_string(idx), xa * S, ya * S));
           res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
           int x = n - xa;
@@ -792,8 +835,8 @@ void solveGena() {
       // ???
     }
     painter = Painter(N, M);
-    auto cur_time = 1.0 * clock() / CLOCKS_PER_SEC;
-    msg = "Solved with penalty " + to_string(res.score) + " in " + to_string(cur_time - start_time) + " s\n";
+    auto time_elapsed = GetTime();
+    msg = "Solved with penalty " + to_string(res.score) + " in " + to_string(time_elapsed) + " s\n";
     for (const auto& ins : res.ins) {
         if (!painter.doInstruction(ins)) {
             msg += "Bad instruction: " + ins.text() + "\n";
@@ -815,7 +858,7 @@ void optsWindow() {
         ImGui::Checkbox("SplitX", &useSplitX);
         ImGui::Checkbox("SplitY", &useSplitY);
         ImGui::Checkbox("SplitPoint", &useSplitPoint);
-        ImGui::DragInt("DP Step", &S, 1, 4, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
+        ImGui::DragInt("DP Step", &S, 1, 2, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
 
         if (ImGui::Button("Solve DP")) {
             cerr << "Spawn thread!\n";

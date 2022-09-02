@@ -9,7 +9,11 @@ vector<tuple<int, int, int>> testResults;
 string submitResult;
 
 void apiUpdateStandings() {
-    char cmd[] = "python ../api.py standings";
+    #ifdef _WIN32
+      char cmd[] = "python ..\\api.py standings";
+    #else
+      char cmd[] = "python ../api.py standings";
+    #endif
     system(cmd);
 
     ifstream infile("standings.txt");
@@ -32,7 +36,11 @@ void apiUpdateStandings() {
 
 void apiSubmit(int task_id) {
     string sid = to_string(task_id);
-    string cmd = "python ../api.py submit " + sid + " ../solutions/" + sid + ".txt";
+    #ifdef _WIN32
+      string cmd = "python ..\\api.py submit " + sid + " ..\\solutions\\" + sid + ".txt";
+    #else
+      string cmd = "python ../api.py submit " + sid + " ../solutions/" + sid + ".txt";
+    #endif
     system(cmd.c_str());
     ifstream infile("tests.txt");
     submitResult = "";
