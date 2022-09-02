@@ -23,6 +23,8 @@
 #include <thread>
 #include <cassert>
 
+#include "api.h"
+
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -784,6 +786,7 @@ void inputWindow() {
 
 int main(int, char**)
 {
+    // getStandings();
     SDLWrapper sw;
     if (!sw.init()) return -1;
 
@@ -792,7 +795,7 @@ int main(int, char**)
         sw.newFrame();
         // ImGui::GetIO().FontGlobalScale = 1.5;
 
-        inputWindow();
+        // inputWindow();
         fileWindow();
         optsWindow();
         

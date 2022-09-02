@@ -23,7 +23,7 @@ OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 UNAME_S := $(shell uname -s)
 LINUX_GL_LIBS = -lGL
 
-CXXFLAGS = -std=c++17 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
+CXXFLAGS = -std=c++17 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends 
 CXXFLAGS += -g -Wall -Wextra -Wformat -O2
 LIBS =
 
@@ -53,7 +53,7 @@ endif
 ifeq ($(UNAME_S), Darwin) #APPLE
 	ECHO_MESSAGE = "Mac OS X"
 	LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo `sdl2-config --libs`
-	LIBS += -L/usr/local/lib # -L/opt/local/lib
+	LIBS += -L/usr/local/lib
 
 	CXXFLAGS += `sdl2-config --cflags`
 	CXXFLAGS += -I/usr/local/include -I/opt/local/include
@@ -72,7 +72,7 @@ endif
 ## BUILD RULES
 ##---------------------------------------------------------------------
 
-%.o:%.cpp
+%.o:%.cpp %.h
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 %.o:$(IMGUI_DIR)/%.cpp
@@ -81,7 +81,7 @@ endif
 %.o:$(IMGUI_DIR)/backends/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-all: $(EXE)
+all: $(EXE) Makefile
 	@echo Build complete for $(ECHO_MESSAGE)
 
 $(EXE): $(OBJS)
