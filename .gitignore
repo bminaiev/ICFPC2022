@@ -1,0 +1,4 @@
+borys/debug/
+borys/target/
+borys/Cargo.lock
+.vscode/
