@@ -370,7 +370,7 @@ void updateStandingsTimed() {
         lastUpdateTime = curTime;
     }*/
     for (int i = 0; running; i++) {
-        if (i % 30 == 0 && false)
+        if (i % 30 == 0)
             updateStandingsAndMyScores();
         #ifdef _WIN32
           Sleep(1000);
@@ -616,6 +616,8 @@ void solveDP() {
 int dp[20100][20100];
 int aux[201][201];
 
+int mode = 0;
+
 void solveGena() {
     if (S < 2) {
       msg = "sorry, S must be at least 2";
@@ -629,7 +631,7 @@ void solveGena() {
     auto GetTime = [&]() {
       auto cur_time = Time::now();
       std::chrono::duration<double> fs = cur_time - start_time;
-      return std::chrono::duration_cast<chrono_ms>(fs).count();
+      return std::chrono::duration_cast<chrono_ms>(fs).count() * 0.001;
     };
     msg = "Running...";
     int n = N / S;
@@ -651,7 +653,6 @@ void solveGena() {
     for (int i = 0; i <= MAX_D; i++) {
       SQRT[i] = sqrt(i);
     }
-    int mode = 0;
     auto PaintCost = [&](int x, int y) -> int {
       assert(x > 0 && y > 0);
       if (x == n && y == m) {
@@ -773,49 +774,65 @@ void solveGena() {
     Reconstruct(0, 0, n, m);
     Solution res;
     res.score = dp[aux[0][n]][aux[0][m]] / 1000;
-    if (mode == 0) {
-      int rect_cnt = (int) rects.size();
-      vector<vector<int>> graph(rect_cnt);
-      vector<int> indegree(rect_cnt);
-      auto AddEdge = [&](int i, int j) {
-        if (i != j) {
-          graph[i].push_back(j);
-          indegree[j] += 1;
-        }
-      };
-      for (int x = 0; x < n; x++) {
-        for (int y = 0; y < m - 1; y++) {
+    int rect_cnt = (int) rects.size();
+    vector<vector<int>> graph(rect_cnt);
+    vector<int> indegree(rect_cnt);
+    auto AddEdge = [&](int i, int j) {
+      if (i != j) {
+        graph[i].push_back(j);
+        indegree[j] += 1;
+      }
+    };
+    for (int x = 0; x < n; x++) {
+      for (int y = 0; y < m - 1; y++) {
+        if (mode & 2) {
+          AddEdge(rect_id[x][y + 1], rect_id[x][y]);
+        } else {
           AddEdge(rect_id[x][y], rect_id[x][y + 1]);
         }
       }
-      for (int x = 0; x < n - 1; x++) {
-        for (int y = 0; y < m; y++) {
+    }
+    for (int x = 0; x < n - 1; x++) {
+      for (int y = 0; y < m; y++) {
+        if (mode & 1) {
+          AddEdge(rect_id[x + 1][y], rect_id[x][y]);
+        } else {
           AddEdge(rect_id[x][y], rect_id[x + 1][y]);
         }
       }
-      vector<int> que;
-      for (int i = 0; i < rect_cnt; i++) {
-        if (indegree[i] == 0) {
-          que.push_back(i);
+    }
+    vector<int> que;
+    for (int i = 0; i < rect_cnt; i++) {
+      if (indegree[i] == 0) {
+        que.push_back(i);
+      }
+    }
+    for (int b = 0; b < (int) que.size(); b++) {
+      for (int u : graph[que[b]]) {
+        if (--indegree[u] == 0) {
+          que.push_back(u);
         }
       }
-      for (int b = 0; b < (int) que.size(); b++) {
-        for (int u : graph[que[b]]) {
-          if (--indegree[u] == 0) {
-            que.push_back(u);
-          }
-        }
-      }
-      assert((int) que.size() == rect_cnt);
-      int idx = 0;
-      for (int it = 0; it < rect_cnt; it++) {
-        int i = que[it];
-        int xa = rects[i].first[0];
-        int ya = rects[i].first[1];
-/*        int xb = rects[i].first[2];
-        int yb = rects[i].first[3];
-        cerr << "id = " << i << ", xa = " << xa << ", ya = " << ya << ", xb = " << xb << ", yb = " << yb << endl;*/
-        Color paint_into = rects[i].second;
+    }
+    assert((int) que.size() == rect_cnt);
+    auto Compare = [&](int x, int y) {
+      int cand1 = llround(1.0 * (n * m) / (max(x, n - x) * y));
+      cand1    += llround(1.0 * (n * m) / (max(x, n - x) * (m - y)));
+      cand1    += llround(1.0 * m / max(y, m - y));
+      int cand2 = llround(1.0 * (n * m) / (x * max(y, m - y)));
+      cand2    += llround(1.0 * (n * m) / ((n - x) * max(y, m - y)));
+      cand2    += llround(1.0 * n / max(x, m - x));
+      return cand1 < cand2;
+    };
+    int idx = 0;
+    for (int it = 0; it < rect_cnt; it++) {
+      int i = que[it];
+      int xa = rects[i].first[0];
+      int ya = rects[i].first[1];
+      int xb = rects[i].first[2];
+      int yb = rects[i].first[3];
+      Color paint_into = rects[i].second;
+      if (mode == 0) {
         if (xa == 0 && ya == 0) {
           res.ins.push_back(ColorIns(to_string(idx), paint_into));
         }
@@ -834,15 +851,7 @@ void solveGena() {
         if (xa > 0 && ya > 0) {                   
           res.ins.push_back(SplitPointIns(to_string(idx), xa * S, ya * S));
           res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
-          int x = n - xa;
-          int y = n - ya;
-          int cand1 = llround(1.0 * (n * m) / (max(x, n - x) * y));
-          cand1    += llround(1.0 * (n * m) / (max(x, n - x) * (m - y)));
-          cand1    += llround(1.0 * m / max(y, m - y));
-          int cand2 = llround(1.0 * (n * m) / (x * max(y, m - y)));
-          cand2    += llround(1.0 * (n * m) / ((n - x) * max(y, m - y)));
-          cand2    += llround(1.0 * n / max(x, m - x));
-          if (cand1 < cand2) {
+          if (Compare(n - xa, n - ya)) {
             res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".2"));
             res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
           } else {
@@ -853,15 +862,96 @@ void solveGena() {
           idx += 3;
         }
       }
-    }
-    if (mode == 1) {
-      // ???
-    }
-    if (mode == 2) {
-      // ???
-    }
-    if (mode == 3) {
-      // ???
+      if (mode == 1) {
+        if (xb == n && ya == 0) {
+          res.ins.push_back(ColorIns(to_string(idx), paint_into));
+        }
+        if (xb == n && ya > 0) {
+          res.ins.push_back(SplitYIns(to_string(idx), ya * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".0", paint_into));
+          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          idx += 1;
+        }
+        if (xb < n && ya == 0) {
+          res.ins.push_back(SplitXIns(to_string(idx), xb * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".0", paint_into));
+          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          idx += 1;
+        }
+        if (xb < n && ya > 0) {                   
+          res.ins.push_back(SplitPointIns(to_string(idx), xb * S, ya * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".0", paint_into));
+          if (Compare(xb, n - ya)) {
+            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".2"));
+            res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          } else {
+            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".0"));
+            res.ins.push_back(MergeIns(to_string(idx) + ".2", to_string(idx) + ".1"));
+          }
+          res.ins.push_back(MergeIns(to_string(idx + 1), to_string(idx + 2)));
+          idx += 3;
+        }
+      }
+      if (mode == 2) {
+        if (xa == 0 && yb == n) {
+          res.ins.push_back(ColorIns(to_string(idx), paint_into));
+        }
+        if (xa == 0 && yb < n) {
+          res.ins.push_back(SplitYIns(to_string(idx), yb * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
+          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          idx += 1;
+        }
+        if (xa > 0 && yb == n) {
+          res.ins.push_back(SplitXIns(to_string(idx), xa * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
+          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          idx += 1;
+        }
+        if (xa > 0 && yb < n) {                   
+          res.ins.push_back(SplitPointIns(to_string(idx), xa * S, yb * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".2", paint_into));
+          if (Compare(n - xa, yb)) {
+            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".2"));
+            res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          } else {
+            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".0"));
+            res.ins.push_back(MergeIns(to_string(idx) + ".2", to_string(idx) + ".1"));
+          }
+          res.ins.push_back(MergeIns(to_string(idx + 1), to_string(idx + 2)));
+          idx += 3;
+        }
+      }
+      if (mode == 3) {
+        if (xb == n && yb == n) {
+          res.ins.push_back(ColorIns(to_string(idx), paint_into));
+        }
+        if (xb == n && yb < n) {
+          res.ins.push_back(SplitYIns(to_string(idx), yb * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
+          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          idx += 1;
+        }
+        if (xb < n && yb == n) {
+          res.ins.push_back(SplitXIns(to_string(idx), xb * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".0", paint_into));
+          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          idx += 1;
+        }
+        if (xb < n && yb < n) {                   
+          res.ins.push_back(SplitPointIns(to_string(idx), xb * S, yb * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".3", paint_into));
+          if (Compare(xb, yb)) {
+            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".2"));
+            res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          } else {
+            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".0"));
+            res.ins.push_back(MergeIns(to_string(idx) + ".2", to_string(idx) + ".1"));
+          }
+          res.ins.push_back(MergeIns(to_string(idx + 1), to_string(idx + 2)));
+          idx += 3;
+        }
+      }
     }
     painter = Painter(N, M);
     auto time_elapsed = GetTime();
@@ -888,6 +978,7 @@ void optsWindow() {
         ImGui::Checkbox("SplitY", &useSplitY);
         ImGui::Checkbox("SplitPoint", &useSplitPoint);
         ImGui::DragInt("DP Step", &S, 1, 2, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
+        ImGui::DragInt("Direction", &mode, 1, 0, 3, "D=%d", ImGuiSliderFlags_AlwaysClamp);
 
         if (ImGui::Button("Solve DP")) {
             cerr << "Spawn thread!\n";
