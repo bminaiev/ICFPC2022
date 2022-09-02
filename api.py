@@ -4,13 +4,13 @@ headers = {
     'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1haWxyb21rYUBnbWFpbC5jb20iLCJleHAiOjE2NjIyMDc1ODksIm9yaWdfaWF0IjoxNjYyMTIxMTg5fQ.euzTfElCK7Jhuu-s3EgjxDIbDxct6yNrwSvxwSC9IJM'
 }
 
-submit_url = 'https://robovinci.xyz/api/submissions/1/create'
+submit_url = 'https://robovinci.xyz/api/submissions/{}/create'
 submissions_url = 'https://robovinci.xyz/api/submissions'
 scoreboard_url = 'https://robovinci.xyz/api/results/scoreboard'
 
-def submit(fname):
+def submit(task_id, fname):
     contents = open(fname, "rb").read()
-    rs = requests.post(submit_url, headers=headers, files={'file': contents})
+    rs = requests.post(submit_url.format(task_id), headers=headers, files={'file': contents})
     print(rs.text)
 
 def save_standings():
@@ -64,4 +64,4 @@ if __name__ == "__main__":
         save_standings()
 
     if sys.argv[1] == 'submit':
-        submit(sys.argv[2])
+        submit(sys.argv[2], sys.argv[3])
