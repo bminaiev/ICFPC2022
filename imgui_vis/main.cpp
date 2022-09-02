@@ -91,7 +91,7 @@ Instruction SplitYIns(string i, int y) {
 }
 
 struct Solution {
-    int score;
+    double score;
     vector<Instruction> ins;
 };
 
@@ -199,6 +199,7 @@ vector<vector<Color>> colors;
 unordered_map<ll, Solution> mem;
 int S = 10;
 Painter painter;
+bool useSplitX, useSplitPoint, useSplitY;
 
 double scale = 1;
 double shiftX, shiftY;
@@ -333,28 +334,52 @@ Solution getInstructions(string id, int r1, int c1, int r2, int c2) {
     res.score = penalty;
 
     double cscore = 7.0 * N * M / ((r2 - r1) * (c2 - c1));
-    for (int y = r1 + S; y < r2; y += S) {
-        Solution s1 = getInstructions(".1", r1, c1, y, c2);
-        Solution s2 = getInstructions(".0", y, c1, r2, c2);
-        if (cscore + s1.score + s2.score < res.score) {
-            res.score = cscore + s1.score + s2.score;
-            res.ins.clear();
-            res.ins.push_back(SplitYIns("", y));
-            res.ins.insert(res.ins.end(), s1.ins.begin(), s1.ins.end());
-            res.ins.insert(res.ins.end(), s2.ins.begin(), s2.ins.end());
+    if (useSplitY) {
+        for (int y = r1 + S; y < r2; y += S) {
+            Solution s1 = getInstructions(".1", r1, c1, y, c2);
+            Solution s2 = getInstructions(".0", y, c1, r2, c2);
+            if (cscore + s1.score + s2.score < res.score) {
+                res.score = cscore + s1.score + s2.score;
+                res.ins.clear();
+                res.ins.push_back(SplitYIns("", y));
+                res.ins.insert(res.ins.end(), s1.ins.begin(), s1.ins.end());
+                res.ins.insert(res.ins.end(), s2.ins.begin(), s2.ins.end());
+            }
         }
     }
 
-    for (int x = c1 + S; x < c2; x += S) {
-        Solution s1 = getInstructions(".0", r1, c1, r2, x);
-        Solution s2 = getInstructions(".1", r1, x, r2, c2);
-        if (cscore + s1.score + s2.score < res.score) {
-            res.score = cscore + s1.score + s2.score;
-            res.ins.clear();
-            res.ins.push_back(SplitXIns("", x));
-            res.ins.insert(res.ins.end(), s1.ins.begin(), s1.ins.end());
-            res.ins.insert(res.ins.end(), s2.ins.begin(), s2.ins.end());
+    if (useSplitX) {
+        for (int x = c1 + S; x < c2; x += S) {
+            Solution s1 = getInstructions(".0", r1, c1, r2, x);
+            Solution s2 = getInstructions(".1", r1, x, r2, c2);
+            if (cscore + s1.score + s2.score < res.score) {
+                res.score = cscore + s1.score + s2.score;
+                res.ins.clear();
+                res.ins.push_back(SplitXIns("", x));
+                res.ins.insert(res.ins.end(), s1.ins.begin(), s1.ins.end());
+                res.ins.insert(res.ins.end(), s2.ins.begin(), s2.ins.end());
+            }
         }
+    }
+
+    if (useSplitPoint) {
+        cscore = 10.0 * N * M / ((r2 - r1) * (c2 - c1));
+        for (int x = c1 + S; x < c2; x += S)
+            for (int y = r1 + S; y < r2; y += S) {
+                Solution s0 = getInstructions(".0", y, c1, r2, x);
+                Solution s1 = getInstructions(".1", y, x, r2, c2);
+                Solution s2 = getInstructions(".2", r1, x, y, c2);
+                Solution s3 = getInstructions(".3", r1, c1, y, x);
+                if (cscore + s1.score + s2.score + s3.score + s0.score < res.score) {
+                    res.score = cscore + s1.score + s2.score + s3.score + s0.score;
+                    res.ins.clear();
+                    res.ins.push_back(SplitPointIns("", x, y));
+                    res.ins.insert(res.ins.end(), s0.ins.begin(), s0.ins.end());
+                    res.ins.insert(res.ins.end(), s3.ins.begin(), s3.ins.end());
+                    res.ins.insert(res.ins.end(), s1.ins.begin(), s1.ins.end());
+                    res.ins.insert(res.ins.end(), s2.ins.begin(), s2.ins.end());
+                }
+            }
     }
 
     // cerr << r1 << "," << c1 << " " << r2 << "," << c2 << " - ";
@@ -380,12 +405,17 @@ Solution solveDP() {
             return res;
         }
     }
+    res.score = round(res.score);
     return res;
 }
 
 void optsWindow() {
     if (ImGui::Begin("Solution")) {
+        ImGui::Checkbox("SplitX", &useSplitX);
+        ImGui::Checkbox("SplitY", &useSplitY);
+        ImGui::Checkbox("SplitPoint", &useSplitPoint);
         ImGui::SliderInt("DP Cell Size", &S, 4, 200);
+
         if (ImGui::Button("Solve DP")) {
             Solution res = solveDP();
             if (res.score != -1) {
