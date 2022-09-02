@@ -313,6 +313,27 @@ unordered_map<int, int> myScores;
 Solution loadSolution(string filepath) {
     Solution res;
     res.score = -1;
+    /*
+    ifstream infile(filepath);
+    string s, token;
+    int val;
+    while (getline(infile, s)) {
+        string cs = "";
+        for (auto c : s)
+            if (c != '[' && c != ']') {
+                if (c == ',') cs += ' ';
+                else cs += c;
+            }
+
+        if (cs.substr(0, 3) == 'cut') {
+            stringstream ss(cs.substr(4));
+            ss >> token;
+            if (token == "X") {
+                ss >> val;
+
+            }
+        }
+    }*/
     return res;
 }
 
@@ -349,10 +370,10 @@ void updateStandingsTimed() {
         lastUpdateTime = curTime;
     }*/
     for (int i = 0; running; i++) {
-        if (i % 30 == 0)
+        if (i % 30 == 0 && false)
             updateStandingsAndMyScores();
         #ifdef _WIN32
-          Sleep(1);
+          Sleep(1000);
         #else
           sleep(1);
         #endif
@@ -388,7 +409,6 @@ void fileWindow() {
             ImGui::TableHeadersRow();
 
             for (size_t idx = 0; idx < tests.size(); idx++) {
-                if (idx >= testResults.size()) break;
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 int tid = tests[idx].first;
@@ -402,15 +422,24 @@ void fileWindow() {
                 if (ImGui::Button(bName.c_str())) {
                     apiSubmit(tests[idx].first);
                 }
-                ImGui::SameLine(82);
+                ImGui::SameLine(85);
                 ImGui::Text("%d", myScores[tests[idx].first]);                
-                assert(get<0>(testResults[idx]) == tests[idx].first);
-                ImGui::TableNextColumn();
-                ImGui::Text("%d", get<1>(testResults[idx]));
-                ImGui::TableNextColumn();
-                ImGui::Text("%d", get<2>(testResults[idx]));
-                ImGui::TableNextColumn();
-                ImGui::Text("%d", get<1>(testResults[idx]) - get<2>(testResults[idx]));
+                if (idx < testResults.size()) {
+                    assert(get<0>(testResults[idx]) == tests[idx].first);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", get<1>(testResults[idx]));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", get<2>(testResults[idx]));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", get<1>(testResults[idx]) - get<2>(testResults[idx]));
+                } else {
+                    ImGui::TableNextColumn();
+                    ImGui::Text("N/A");
+                    ImGui::TableNextColumn();
+                    ImGui::Text("N/A");
+                    ImGui::TableNextColumn();
+                    ImGui::Text("N/A");
+                }
             }
             ImGui::EndTable();
         }
