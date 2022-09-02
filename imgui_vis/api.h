@@ -10,9 +10,9 @@ string submitResult;
 
 void apiUpdateStandings() {
     #ifdef _WIN32
-      char cmd[] = "python ..\\api.py standings";
+      char cmd[] = "python3 ..\\api.py standings";
     #else
-      char cmd[] = "python ../api.py standings";
+      char cmd[] = "python3 ../api.py standings";
     #endif
     system(cmd);
 
@@ -37,9 +37,9 @@ void apiUpdateStandings() {
 void apiSubmit(int task_id) {
     string sid = to_string(task_id);
     #ifdef _WIN32
-      string cmd = "python ..\\api.py submit " + sid + " ..\\solutions\\" + sid + ".txt";
+      string cmd = "python3 ..\\api.py submit " + sid + " ..\\solutions\\" + sid + ".txt";
     #else
-      string cmd = "python ../api.py submit " + sid + " ../solutions/" + sid + ".txt";
+      string cmd = "python3 ../api.py submit " + sid + " ../solutions/" + sid + ".txt";
     #endif
     system(cmd.c_str());
     ifstream infile("tests.txt");
