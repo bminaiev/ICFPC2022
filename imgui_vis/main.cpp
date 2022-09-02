@@ -569,6 +569,40 @@ void fileWindow() {
             }
         }
 
+        ImGui::SameLine(200);
+        if (ImGui::Button("Read Local")) {
+            for (const auto & entry : fs::directory_iterator(inputsPath)) {
+                string s = entry.path().string();
+                size_t i = 0;
+                while (i < s.size() && (s[i] < '0' || s[i] > '9')) i++;
+                if (i >= s.size()) continue;
+                size_t j = i;
+                while (s[j] >= '0' && s[j] <= '9') j++;
+                int test_id;
+                sscanf(s.substr(i, j).c_str(), "%d", &test_id);
+                
+                Input in = readInput(s);
+                cerr << "read input " << in.N << "x" << in.M << endl;
+                Solution sol = loadSolution(in, solutionsPath + to_string(test_id) + ".txt");
+                Painter p(in.N, in.M);
+                for (const auto& ins : sol.ins) {
+                    if (!p.doInstruction(ins)) {
+                        cerr << "Bad instruction in " + s + ": " + ins.text() + "\n";
+                        sol.score = -100;
+                        break;
+                    }
+                }
+                if (sol.score > -99) sol.score = p.totalScore(in.colors);
+                cerr << test_id << " " << sol.score << endl;
+                myScores[test_id] = round(sol.score);
+            }
+
+            ofstream ofs("local_scores.txt");
+            for (auto [id, sc] : myScores)
+                ofs << id << " " << sc << endl;
+            ofs.close();
+        }
+
         vector<pair<int, string>> tests;
         for (const auto & entry : fs::directory_iterator(inputsPath)) {
             string s = entry.path().string();
