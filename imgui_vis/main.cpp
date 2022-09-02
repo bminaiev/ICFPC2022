@@ -561,12 +561,20 @@ void solveGena() {
       for (int ya = m - 1; ya >= 0; ya--) {
         for (int xb = xa + 1; xb <= n; xb++) {
           for (int yb = ya + 1; yb <= m; yb++) {
+            int ft = (int) 1e9;
+            for (int x = xa + 1; x < xb; x++) {
+              ft = min(ft, dp[xa][ya][x][yb] + dp[x][ya][xb][yb]);
+            }
+            for (int y = ya + 1; y < yb; y++) {
+              ft = min(ft, dp[xa][ya][xb][y] + dp[xa][y][xb][yb]);
+            }
             int area = (xb - xa) * (yb - ya) * S * S;
             Color paint_into;
             for (int k = 0; k < 4; k++) {
               int sum = pref[yb * S][xb * S][k] - pref[ya * S][xb * S][k] - pref[yb * S][xa * S][k] + pref[ya * S][xa * S][k];
               paint_into[k] = (2 * sum + area) / (2 * area);
             }
+            long long penalty = 1000 * PaintCost((mode & 1) ? xb : n - xa, (mode & 2) ? yb : m - ya);
             double diff = 0;
             for (int y = ya * S; y < yb * S; y++) {
               for (int x = xa * S; x < xb * S; x++) {
@@ -576,15 +584,13 @@ void solveGena() {
                 }
                 diff += SQRT[sum_sq];
               }
+              if (penalty + llround(diff * 5) >= ft) {
+                break;
+              }
             }
-            long long penalty = llround(diff * 5);
-            penalty += 1000 * PaintCost((mode & 1) ? xb : n - xa, (mode & 2) ? yb : m - ya);
-            int ft = penalty;
-            for (int x = xa + 1; x < xb; x++) {
-              ft = min(ft, dp[xa][ya][x][yb] + dp[x][ya][xb][yb]);
-            }
-            for (int y = ya + 1; y < yb; y++) {
-              ft = min(ft, dp[xa][ya][xb][y] + dp[xa][y][xb][yb]);
+            penalty += llround(diff * 5);
+            if (penalty < ft) {
+              ft = penalty;
             }
             dp[xa][ya][xb][yb] = ft;
           }
@@ -717,7 +723,8 @@ void solveGena() {
       // ???
     }
     painter = Painter(N, M);
-    msg = "Solved with penalty " + to_string(res.score) + "\n";
+    auto cur_time = 1.0 * clock() / CLOCKS_PER_SEC;
+    msg = "Solved with penalty " + to_string(res.score) + " in " + to_string(cur_time - start_time) + " s\n";
     for (const auto& ins : res.ins) {
         if (!painter.doInstruction(ins)) {
             msg += "Bad instruction: " + ins.text() + "\n";
