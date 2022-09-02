@@ -5,6 +5,7 @@ image_dir = "images/"
 inputs_dir = "inputs/"
 for f in os.listdir(image_dir):
     fname = image_dir + f
+    print(fname + "...")
     img = Image.open(fname)
     w, h = img.size
     with open(inputs_dir + f.replace("png", "txt"), "w") as fout:

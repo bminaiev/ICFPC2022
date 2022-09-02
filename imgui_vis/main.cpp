@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <array>
+#include <thread>
 #include <cassert>
 
 using namespace std;
@@ -47,7 +48,7 @@ struct Instruction {
         if (type == tColor) {
             sprintf(buf, "color [%s] [%d, %d, %d, %d]", id.c_str(), color[0], color[1], color[2], color[3]);
         } else if (type == tSplitPoint) {
-            sprintf(buf, "cut [%s] [%d, %d]", id.c_str(), x, y);
+            sprintf(buf, "cut [%s] [%d, %d]", id.c_str(), x, N - y);
         } else if (type == tSplitX) {
             sprintf(buf, "cut [%s] [X] [%d]", id.c_str(), x);
         } else if (type == tSplitY) {
@@ -217,6 +218,12 @@ void readInput(const string& fname) {
     shiftX = shiftY = 0;
 }
 
+struct Test {
+    string inputPath;
+    int id;
+    Solution s;
+};
+
 void fileWindow() {
     if(ImGui::Begin("Tests")) {
         std::string path = "../inputs/";
@@ -240,7 +247,7 @@ void fileWindow() {
             for (size_t idx = 0; idx < tests.size(); idx++) {
                 path = tests[idx].second;
                 const bool is_selected = (idx == selected_idx);
-                if (ImGui::Selectable(path.c_str(), is_selected)) {
+                if (ImGui::Selectable(to_string(tests[idx].first).c_str(), is_selected)) {
                     selected_idx = idx;
                     test_id = tests[idx].first;
                     readInput(path);
@@ -295,6 +302,10 @@ void processMouse() {
     }
 }
 
+string msg;
+int totalNodes;
+int visitedNodes;
+
 Solution getInstructions(string id, int r1, int c1, int r2, int c2) {
     ll key = ((r1 * M + c1) * ll(N) + r2) * ll(M) + c2;
     if (mem.find(key) != mem.end()) {
@@ -303,7 +314,11 @@ Solution getInstructions(string id, int r1, int c1, int r2, int c2) {
             res.ins[w].id = id + res.ins[w].id;
         return res;
     }
-    cerr << r1 << "," << c1 << " " << r2 << "," << c2 << endl;
+    // cerr << r1 << "," << c1 << " " << r2 << "," << c2 << endl;
+    visitedNodes++;
+    if (visitedNodes % 100 == 0) {
+        msg = "Processed " + to_string(visitedNodes) + " of " + to_string(totalNodes) + "...";
+    }
 
     Color sum;
     for (int q = 0; q < 4; q++) sum[q] = 0;
@@ -391,22 +406,27 @@ Solution getInstructions(string id, int r1, int c1, int r2, int c2) {
     return res;
 }
 
-string msg;
-
-Solution solveDP() {
+void solveDP() {
     mem.clear();
+    msg = "Running...";
+    totalNodes = (N / S + 2) * (N / S + 1) * (M / S + 2) * (M / S + 1) / 4;
+    visitedNodes = 0;
     Solution res = getInstructions("0", 0, 0, N, M);
     painter = Painter(N, M);
     msg = "Solved with penalty " + to_string(res.score) + "\n";
     for (const auto& ins : res.ins) {
         if (!painter.doInstruction(ins)) {
             msg += "Bad instruction: " + ins.text() + "\n";
-            res.score = -1;
-            return res;
+            return;
         }
     }
     res.score = round(res.score);
-    return res;
+    string fname = "../solutions/" + to_string(test_id) + ".txt";
+    freopen(fname.c_str(), "w", stdout);
+    for (const auto& i : res.ins) {
+        cout << i.text() << endl;
+    }
+    fclose(stdout);
 }
 
 void optsWindow() {
@@ -414,18 +434,12 @@ void optsWindow() {
         ImGui::Checkbox("SplitX", &useSplitX);
         ImGui::Checkbox("SplitY", &useSplitY);
         ImGui::Checkbox("SplitPoint", &useSplitPoint);
-        ImGui::SliderInt("DP Cell Size", &S, 4, 200);
+        ImGui::DragInt("DP Step", &S, 1, 4, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
 
         if (ImGui::Button("Solve DP")) {
-            Solution res = solveDP();
-            if (res.score != -1) {
-                string fname = "../solutions/" + to_string(test_id) + ".txt";
-                freopen(fname.c_str(), "w", stdout);
-                for (const auto& i : res.ins) {
-                    cout << i.text() << endl;
-                }
-                fclose(stdout);
-            }
+            cerr << "Spawn thread!\n";
+            thread solveThread(solveDP);
+            solveThread.detach();
         }
         ImGui::Text("%s", msg.c_str());
     }
