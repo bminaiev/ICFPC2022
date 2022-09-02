@@ -1,4 +1,4 @@
-import requests, sys
+import requests, sys, shutil, json
 
 headers = {
     'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1haWxyb21rYUBnbWFpbC5jb20iLCJleHAiOjE2NjIyMDc1ODksIm9yaWdfaWF0IjoxNjYyMTIxMTg5fQ.euzTfElCK7Jhuu-s3EgjxDIbDxct6yNrwSvxwSC9IJM'
@@ -10,9 +10,33 @@ scoreboard_url = 'https://robovinci.xyz/api/results/scoreboard'
 
 def submit(task_id, fname):
     contents = open(fname, "rb").read()
-    with open("submit_result.txt", "w") as fout:
+    with open("req_result.txt", "w") as fout:
         rs = requests.post(submit_url.format(task_id), headers=headers, files={'file': contents})
         fout.write(rs.text)
+
+def download(task_id, fname):
+    rs = requests.get(submissions_url, headers=headers)
+    js = rs.json()
+    best = (10 ** 100, 0)
+    for sub in js['submissions']:
+        if sub['status'] == 'SUCCEEDED' and sub['problem_id'] == task_id:
+            best = min(best, (sub['score'], sub['id']))
+
+    rs = requests.get(submissions_url + "/" + str(best[1]), headers=headers)
+    print(rs.text)
+    js = rs.json()
+    url = js['file_url']
+
+    r = requests.get(url, stream=True)
+    if r.status_code == 200:
+        with open(fname, 'wb') as f:
+            r.raw.decode_content = True
+            shutil.copyfileobj(r.raw, f)
+
+    with open("req_result.txt", "w") as fout:
+        js['file_url'] = '<stripped>'
+        fout.write(json.dumps(js))
+
 
 def save_standings():
     rs = requests.get(scoreboard_url, headers=headers)
@@ -71,3 +95,6 @@ if __name__ == "__main__":
 
     if sys.argv[1] == 'submit':
         submit(sys.argv[2], sys.argv[3])
+
+    if sys.argv[1] == 'download':
+        download(int(sys.argv[2]), sys.argv[3])

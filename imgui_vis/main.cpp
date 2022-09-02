@@ -51,6 +51,10 @@ constexpr int tSplitY = 4;
 constexpr int tMerge = 5;
 constexpr int tSwap = 6;
 
+const string inputsPath = "../inputs/";
+const string solutionsPath = "../solutions/";
+
+
 int N, M;
 vector<vector<Color>> colors;
 bool running;
@@ -356,6 +360,8 @@ unordered_map<ll, Solution> mem;
 int S = 10;
 Painter painter;
 bool useSplitX, useSplitPoint, useSplitY;
+unordered_map<int, int> myScores;
+string msg;
 
 double scale = 1;
 double shiftX, shiftY;
@@ -380,9 +386,33 @@ void readInputAndStoreAsGlobal(const string& fname) {
     colors = i.colors;
 }
 
-unordered_map<int, int> myScores;
+void postprocess(const Solution& res) {
+    painter = Painter(N, M);
+    msg += "Solved with penalty " + to_string(res.score) + "\n";
+    for (const auto& ins : res.ins) {
+        if (!painter.doInstruction(ins)) {
+            msg += "Bad instruction: " + ins.text() + "\n";
+            return;
+        }
+    }
+    msg += "Painter score: " + to_string(painter.totalScore(colors)) + "\n";
+    if (myScores[currentTestId] == -1 || res.score < myScores[currentTestId]) {
+        string fname = "../solutions/" + to_string(currentTestId) + ".txt";
+        myScores[currentTestId] = res.score;
+        ofstream ofs(fname);
+        for (const auto& i : res.ins) {
+            ofs << i.text() << endl;
+        }
+        ofs.close();
 
-Solution loadSolution(const Input& in, string filepath) {
+        ofs = ofstream("local_scores.txt");
+        for (auto [id, sc] : myScores)
+            ofs << id << " " << sc << endl;
+        ofs.close();
+    }
+}
+
+Solution loadSolution(const Input& in, const string& filepath) {
     Solution res;
     res.score = -1;
     ifstream infile(filepath);
@@ -407,7 +437,7 @@ Solution loadSolution(const Input& in, string filepath) {
             } else if (token == "Y") {
                 res.ins.push_back(SplitYIns(id, in.N - val));
             } else {
-                res.ins.push_back(SplitPointIns(id, stoi(token), val));
+                res.ins.push_back(SplitPointIns(id, stoi(token), in.N - val));
             }
         } else if (cs.substr(0, 5) == "merge") {
             stringstream ss(cs.substr(6));
@@ -427,12 +457,21 @@ Solution loadSolution(const Input& in, string filepath) {
             return res;
         }
     }
+    Painter p(in.N, in.M);
+    for (const auto& ins : res.ins) {
+        if (!p.doInstruction(ins)) {
+            cerr << "Bad instruction in " + s + ": " + ins.text() + "\n";
+            res.score = -100;
+            return res;
+        }
+    }
+    res.score = p.totalScore(in.colors);
     return res;
 }
 
 void updateStandingsAndMyScores(bool useApiUpdate) {
     if (useApiUpdate) apiUpdateStandings();
-    std::ofstream ofs("my_scores.txt");
+    /*std::ofstream ofs("my_scores.txt");
     string solutionsPath = "../solutions/";
     string inputsPath = "../inputs/";
     for (const auto & entry : fs::directory_iterator(solutionsPath)) {
@@ -462,7 +501,12 @@ void updateStandingsAndMyScores(bool useApiUpdate) {
         cerr << test_id << " " << sol.score << endl;
         myScores[test_id] = round(sol.score);
     }
-    ofs.close();
+    ofs.close();*/
+    std::ifstream ifs("local_scores.txt");
+    int test_id, score;
+    while (ifs >> test_id >> score) {
+        myScores[test_id] = score;
+    }
 }
 
 chrono::high_resolution_clock::time_point lastUpdateTime;
@@ -488,14 +532,41 @@ void updateStandingsTimed() {
     }
 }
 
+void downloadSolution(int testId) {
+    currentTestId = testId;
+    apiDownload(testId);
+    Input in = readInput(inputsPath + to_string(currentTestId) + ".txt");
+    N = in.N;
+    M = in.M;
+    colors = in.colors;
+    Solution sol = loadSolution(in, solutionsPath + to_string(currentTestId) + ".txt");
+    postprocess(sol);
+    cerr << "downloaded and loaded sol with score " << sol.score << endl;
+}
+
 void fileWindow() {
     if(ImGui::Begin("Tests")) {
-        // updateStandingsTimed();
-        string inputsPath = "../inputs/";
-        string solutionsPath = "../solutions/";
-
         if (ImGui::Button("Update")) {
             updateStandingsAndMyScores(true);
+        }
+
+        ImGui::SameLine(70);
+        if (ImGui::Button("Download Better")) {
+            for (const auto & entry : fs::directory_iterator(inputsPath)) {
+                string s = entry.path().string();
+                size_t i = 0;
+                while (i < s.size() && (s[i] < '0' || s[i] > '9')) i++;
+                if (i >= s.size()) continue;
+                size_t j = i;
+                while (s[j] >= '0' && s[j] <= '9') j++;
+                int idx;
+                sscanf(s.substr(i, j).c_str(), "%d", &idx);
+                if (idx - 1 < (int)testResults.size()) {
+                    if (get<1>(testResults[idx - 1]) < myScores[idx] || myScores[idx] == -1) {
+                        downloadSolution(idx);
+                    }    
+                }
+            }
         }
 
         vector<pair<int, string>> tests;
@@ -529,6 +600,7 @@ void fileWindow() {
                     currentTestId = tests[idx].first;
                     readInputAndStoreAsGlobal(tests[idx].second);
                     cerr << "load " << tid << " " << N << " " << M << endl;
+                    requestResult = "";
                 }
                 ImGui::TableNextColumn();
                 ImGui::Text("%d", myScores[tests[idx].first]);                
@@ -545,7 +617,7 @@ void fileWindow() {
                     ImGui::SameLine(55);
                     bName = "Download " + to_string(tid);
                     if (ImGui::Button(bName.c_str())) {
-                        apiDownload(tests[idx].first);
+                        downloadSolution(tests[idx].first);
                     }
 
                     ImGui::TableNextColumn();
@@ -606,7 +678,6 @@ void processMouse() {
     }
 }
 
-string msg;
 int totalNodes;
 int visitedNodes;
 
@@ -716,21 +787,8 @@ void solveDP() {
     totalNodes = (N / S + 2) * (N / S + 1) * (M / S + 2) * (M / S + 1) / 4;
     visitedNodes = 0;
     Solution res = getInstructions("0", 0, 0, N, M);
-    painter = Painter(N, M);
-    msg = "Solved with penalty " + to_string(res.score) + "\n";
-    for (const auto& ins : res.ins) {
-        if (!painter.doInstruction(ins)) {
-            msg += "Bad instruction: " + ins.text() + "\n";
-            return;
-        }
-    }
-    msg += "Painter score: " + to_string(painter.totalScore(colors)) + "\n";
-    string fname = "../solutions/" + to_string(currentTestId) + ".txt";
-    freopen(fname.c_str(), "w", stdout);
-    for (const auto& i : res.ins) {
-        cout << i.text() << endl;
-    }
-    fclose(stdout);
+    msg = "";
+    postprocess(res);
 }
 
 int dp[20100][20100];
@@ -1073,23 +1131,9 @@ void solveGena() {
         }
       }
     }
-    painter = Painter(N, M);
-    auto time_elapsed = GetTime();
-    msg = "Solved with penalty " + to_string(res.score) + " in " + to_string(time_elapsed) + " s\n";
-    for (const auto& ins : res.ins) {
-        if (!painter.doInstruction(ins)) {
-            msg += "Bad instruction: " + ins.text() + "\n";
-            return;
-        }
-    }
-    msg += "Painter score: " + to_string(painter.totalScore(colors)) + "\n";
-    res.score = round(res.score);
-    string fname = "../solutions/" + to_string(currentTestId) + ".txt";
-    freopen(fname.c_str(), "w", stdout);
-    for (const auto& i : res.ins) {
-        cout << i.text() << endl;
-    }
-    fclose(stdout);
+
+    msg = "Duration: " + to_string(GetTime()) + "s\n";
+    postprocess(res);
 }
 
 void optsWindow() {
@@ -1147,6 +1191,7 @@ void inputWindow() {
 int main(int, char**)
 {
     running = true;
+    for (int i = 1; i < 1000; i++) myScores[i] = -1;
     thread updateThread(updateStandingsTimed);
     SDLWrapper sw;
     if (!sw.init()) return -1;
