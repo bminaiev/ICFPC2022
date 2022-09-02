@@ -10,8 +10,9 @@ scoreboard_url = 'https://robovinci.xyz/api/results/scoreboard'
 
 def submit(task_id, fname):
     contents = open(fname, "rb").read()
-    rs = requests.post(submit_url.format(task_id), headers=headers, files={'file': contents})
-    print(rs.text)
+    with open("submit_result.txt", "w") as fout:
+        rs = requests.post(submit_url.format(task_id), headers=headers, files={'file': contents})
+        fout.write(rs.text)
 
 def save_standings():
     rs = requests.get(scoreboard_url, headers=headers)
@@ -24,7 +25,6 @@ def save_standings():
         print('===== Scoreboard =====')
         cnt = 0
         for solved, score, team in sorted(standings):
-            fout.write("{} {} {}\n".format(score, -solved, team))
             t = team
             if t == 'RGBTeam':
                 t = '--> RGBTeam <--'
@@ -34,7 +34,9 @@ def save_standings():
 
             cnt += 1
             if cnt <= 20 or team == 'RGBTeam':
-                print("{3:2d} {0:20s} {1:2d} {2}".format(t, -solved, score, cnt))
+                line = "{3:2d} {0:20s} {1:2d} {2}".format(t, -solved, score, cnt)
+                print(line)
+                fout.write(line + "\n")
 
     mytest = {}
     mintest = {}
@@ -48,6 +50,9 @@ def save_standings():
             mintest[tid] = min(mintest[tid], test['min_cost'])
             if team['team_name'] == 'RGBTeam':
                 mytest[tid] = test['min_cost']
+
+            # if tid == 1:
+            #     print(test['min_cost'])
 
     with open("tests.txt", "w") as fout:
         print('===== Tests =====')

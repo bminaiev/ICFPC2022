@@ -22,6 +22,13 @@
 #include <array>
 #include <thread>
 #include <cassert>
+#include <tuple>
+#include <chrono>
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
 
 #include "api.h"
 
@@ -41,6 +48,7 @@ constexpr int tMerge = 5;
 
 int N, M;
 vector<vector<Color>> colors;
+bool running;
 
 struct Instruction {
     string id, oid;
@@ -274,7 +282,7 @@ struct Painter {
     }
 };
 
-int selected_idx, test_id;
+int selected_idx, currentTestId;
 unordered_map<ll, Solution> mem;
 int S = 10;
 Painter painter;
@@ -296,18 +304,61 @@ void readInput(const string& fname) {
     shiftX = shiftY = 0;
 }
 
-struct Test {
-    string inputPath;
-    int id;
-    Solution s;
-};
+unordered_map<int, int> myScores;
+
+Solution loadSolution(string filepath) {
+    Solution res;
+    res.score = -1;
+    return res;
+}
+
+void updateStandingsAndMyScores() {
+    apiUpdateStandings();
+    std::ofstream ofs("my_scores.txt");
+    string solutionsPath = "../solutions/";
+    for (const auto & entry : fs::directory_iterator(solutionsPath)) {
+        string s = entry.path().string();
+
+        size_t i = 0;
+        while (i < s.size() && (s[i] < '0' || s[i] > '9')) i++;
+        if (i >= s.size()) continue;
+        size_t j = i;
+        while (s[j] >= '0' && s[j] <= '9') j++;
+
+        int test_id;
+        sscanf(s.substr(i, j).c_str(), "%d", &test_id);
+
+        Solution sol = loadSolution(s);
+        myScores[test_id] = round(sol.score);
+    }
+    ofs.close();
+}
+
+chrono::high_resolution_clock::time_point lastUpdateTime;
+
+void updateStandingsTimed() {
+    /*
+    auto curTime = chrono::high_resolution_clock::now();
+
+    if (chrono::duration_cast<chrono::seconds>(curTime - lastUpdateTime).count() > 30) {
+        updateStandingsAndMyScores();
+        lastUpdateTime = curTime;
+    }*/
+    for (int i = 0; running; i++) {
+        if (i % 30 == 0)
+            updateStandingsAndMyScores();
+        sleep(1);
+    }
+}
 
 void fileWindow() {
     if(ImGui::Begin("Tests")) {
-        std::string path = "../inputs/";
+        // updateStandingsTimed();
+        string inputsPath = "../inputs/";
+        string solutionsPath = "../solutions/";
 
         vector<pair<int, string>> tests;
-        for (const auto & entry : fs::directory_iterator(path)) {
+        for (const auto & entry : fs::directory_iterator(inputsPath)) {
             string s = entry.path().string();
             tests.emplace_back(0, s);
             size_t i = 0;
@@ -319,23 +370,41 @@ void fileWindow() {
         }
 
         sort(tests.begin(), tests.end());
-        static int selected_idx = -1;
+        if (ImGui::BeginTable("Tests", 5))
+        {
+            ImGui::TableSetupColumn("ID");
+            ImGui::TableSetupColumn("Local");
+            ImGui::TableSetupColumn("My subs");
+            ImGui::TableSetupColumn("Best");
+            ImGui::TableSetupColumn("Loss");
+            ImGui::TableHeadersRow();
 
-        if (ImGui::BeginListBox("T", ImVec2(250, ImGui::GetFrameHeightWithSpacing() * 16))) {
-            for (int idx = 0; idx < (int)tests.size(); idx++) {
-                path = tests[idx].second;
-                const bool is_selected = (idx == selected_idx);
-                if (ImGui::Selectable(to_string(tests[idx].first).c_str(), is_selected)) {
-                    selected_idx = idx;
-                    test_id = tests[idx].first;
-                    readInput(path);
+            for (size_t idx = 0; idx < tests.size(); idx++) {
+                if (idx >= testResults.size()) break;
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                int tid = tests[idx].first;
+                string bName = "Load " + to_string(tid);
+                if (ImGui::Button(bName.c_str())) {
+                    currentTestId = tests[idx].first;
+                    readInput(tests[idx].second);
                 }
-
-                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                if (is_selected)
-                    ImGui::SetItemDefaultFocus();
+                ImGui::TableNextColumn();
+                bName = "Submit " + to_string(tid);
+                if (ImGui::Button(bName.c_str())) {
+                    apiSubmit(tests[idx].first);
+                }
+                ImGui::SameLine(82);
+                ImGui::Text("%d", myScores[tests[idx].first]);                
+                assert(get<0>(testResults[idx]) == tests[idx].first);
+                ImGui::TableNextColumn();
+                ImGui::Text("%d", get<1>(testResults[idx]));
+                ImGui::TableNextColumn();
+                ImGui::Text("%d", get<2>(testResults[idx]));
+                ImGui::TableNextColumn();
+                ImGui::Text("%d", get<1>(testResults[idx]) - get<2>(testResults[idx]));
             }
-            ImGui::EndListBox();
+            ImGui::EndTable();
         }
     }
 
@@ -499,7 +568,7 @@ void solveDP() {
         }
     }
     msg += "Painter score: " + to_string(painter.totalScore()) + "\n";
-    string fname = "../solutions/" + to_string(test_id) + ".txt";
+    string fname = "../solutions/" + to_string(currentTestId) + ".txt";
     freopen(fname.c_str(), "w", stdout);
     for (const auto& i : res.ins) {
         cout << i.text() << endl;
@@ -733,7 +802,7 @@ void solveGena() {
     }
     msg += "Painter score: " + to_string(painter.totalScore()) + "\n";
     res.score = round(res.score);
-    string fname = "../solutions/" + to_string(test_id) + ".txt";
+    string fname = "../solutions/" + to_string(currentTestId) + ".txt";
     freopen(fname.c_str(), "w", stdout);
     for (const auto& i : res.ins) {
         cout << i.text() << endl;
@@ -793,7 +862,8 @@ void inputWindow() {
 
 int main(int, char**)
 {
-    // getStandings();
+    running = true;
+    thread updateThread(updateStandingsTimed);
     SDLWrapper sw;
     if (!sw.init()) return -1;
 
@@ -813,5 +883,8 @@ int main(int, char**)
     }
 
     sw.cleanup();
+
+    running = false;
+    updateThread.join();
     return 0;
 }
