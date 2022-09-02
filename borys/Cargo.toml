@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 algo_lib = {git = "https://github.com/BorysMinaiev/rust-contests"}
+image = "0.24.3"

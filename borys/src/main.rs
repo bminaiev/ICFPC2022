@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 use algo_lib::{
     collections::array_2d::Array2D, geometry::point::PointT, io::input::Input,
@@ -36,6 +36,7 @@ type Point = PointT<i32>;
 enum Op {
     CutPoint(RectId, Point),
     Color(RectId, Color),
+    CutY(RectId, i32),
 }
 
 fn remove_prefix(s: Vec<u8>, c: char) -> Vec<u8> {
@@ -57,8 +58,7 @@ fn read_id(input: &mut Input) -> RectId {
     id
 }
 
-fn read_next_int(input: &mut Input) -> i32 {
-    let s = input.string();
+fn parse_mid_int(s: &[u8]) -> i32 {
     let mut start = 0;
     while !(s[start] >= b'0' && s[start] <= b'9') {
         start += 1;
@@ -68,6 +68,11 @@ fn read_next_int(input: &mut Input) -> i32 {
         end -= 1;
     }
     vec2str(&s[start..=end]).parse().unwrap()
+}
+
+fn read_next_int(input: &mut Input) -> i32 {
+    let s = input.string();
+    parse_mid_int(&s)
 }
 
 fn read_color(input: &mut Input) -> Color {
@@ -85,10 +90,17 @@ fn read_submit(path: &str) -> Vec<Op> {
         let cmd = input.string_as_string();
         if cmd == "cut" {
             let id = read_id(&mut input);
-            let x = read_next_int(&mut input);
-            let y = read_next_int(&mut input);
+            let token = input.string();
+            if token[1] == b'Y' || token[1] == b'X' {
+                assert!(token[1] == b'Y');
+                let y = read_next_int(&mut input);
+                res.push(Op::CutY(id, y))
+            } else {
+                let x = parse_mid_int(&token);
+                let y = read_next_int(&mut input);
 
-            res.push(Op::CutPoint(id, Point::new(x, y)));
+                res.push(Op::CutPoint(id, Point::new(x, y)));
+            }
         } else if cmd == "color" {
             let id = read_id(&mut input);
             let color = read_color(&mut input);
@@ -144,6 +156,14 @@ fn apply_ops(ops: &[Op], n: usize, m: usize) -> OpResult {
         Rect::new(Point::ZERO, Point::new(n as i32, m as i32)),
     );
     let mut cost = 0.0;
+
+    let gen_key = |id: &Vec<u8>, sub_id: usize| -> Vec<u8> {
+        let mut res = id.clone();
+        res.push(b'.');
+        res.push(sub_id as u8 + b'0');
+        res
+    };
+
     for op in ops.iter() {
         match op {
             Op::CutPoint(id, p) => {
@@ -155,27 +175,20 @@ fn apply_ops(ops: &[Op], n: usize, m: usize) -> OpResult {
                 let y2 = p.y;
                 let y3 = r.to.y;
 
-                let gen_key = |sub_id: usize| -> Vec<u8> {
-                    let mut res = id.clone();
-                    res.push(b'.');
-                    res.push(sub_id as u8 + b'0');
-                    res
-                };
-
                 rects.insert(
-                    gen_key(0),
+                    gen_key(id, 0),
                     Rect::new(Point::new(x1, y1), Point::new(x2, y2)),
                 );
                 rects.insert(
-                    gen_key(1),
+                    gen_key(id, 1),
                     Rect::new(Point::new(x2, y1), Point::new(x3, y2)),
                 );
                 rects.insert(
-                    gen_key(2),
+                    gen_key(id, 2),
                     Rect::new(Point::new(x2, y2), Point::new(x3, y3)),
                 );
                 rects.insert(
-                    gen_key(3),
+                    gen_key(id, 3),
                     Rect::new(Point::new(x1, y2), Point::new(x2, y3)),
                 );
                 rects.remove(id);
@@ -190,16 +203,51 @@ fn apply_ops(ops: &[Op], n: usize, m: usize) -> OpResult {
                 }
                 cost += (5.0 * canvas_size / r.size()).round();
             }
+            Op::CutY(id, split_y) => {
+                let r = *rects.get(id).unwrap();
+                rects.insert(
+                    gen_key(id, 0),
+                    Rect::new(r.from, Point::new(r.to.x, *split_y)),
+                );
+                rects.insert(
+                    gen_key(id, 1),
+                    Rect::new(Point::new(r.from.x, *split_y), r.to),
+                );
+                rects.remove(id);
+                cost += (7.0 * canvas_size / r.size()).round();
+            }
         }
     }
     dbg!(cost);
     OpResult { picture: a, cost }
 }
 
-fn main() {
-    println!("Hello, world!");
+fn save_image(a: &Array2D<Color>, path: &str) {
+    let width = a[0].len();
+    let height = a.len();
 
-    let mut input = Input::new_file("../inputs/1.txt");
+    let mut buffer = vec![];
+    for x in 0..height {
+        for y in 0..width {
+            let c = a[y][height - 1 - x];
+            for k in c.0.iter() {
+                buffer.push(*k);
+            }
+        }
+    }
+
+    image::save_buffer(
+        Path::new(path),
+        &buffer,
+        width as u32,
+        height as u32,
+        image::ColorType::Rgba8,
+    )
+    .unwrap()
+}
+
+fn solve_case(test_id: usize) {
+    let mut input = Input::new_file(format!("../inputs/{}.txt", test_id));
     let m = input.usize();
     let n = input.usize();
     let mut expected = Array2D::new(Color::default(), n, m);
@@ -210,18 +258,13 @@ fn main() {
             }
         }
     }
-    let submit = read_submit("../outputs/1.isl");
+    let submit = read_submit(&format!("../outputs/{}.isl", test_id));
     let op_res = apply_ops(&submit, n, m);
-    // let mut my = Array2D::new(Color::default(), n, m);
-    // for x in 0..my.len() {
-    //     for y in 0..my[x].len() {
-    //         let x_part = x < 256;
-    //         let y_part = y < 256;
-    //         if x_part != y_part {
-    //             my[x][y] = Color([0, 0, 0, 255]);
-    //         }
-    //     }
-    // }
     let dist = get_pixel_distance(&op_res.picture, &expected);
     dbg!(dist + op_res.cost);
+    save_image(&op_res.picture, &format!("../images/{}.res.png", test_id))
+}
+
+fn main() {
+    solve_case(7)
 }
