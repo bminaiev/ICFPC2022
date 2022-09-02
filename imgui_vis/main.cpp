@@ -34,11 +34,13 @@ constexpr int tColor = 1;
 constexpr int tSplitPoint = 2;
 constexpr int tSplitX = 3;
 constexpr int tSplitY = 4;
+constexpr int tMerge = 5;
 
 int N, M;
+vector<vector<Color>> colors;
 
 struct Instruction {
-    string id;
+    string id, oid;
     int type;
     int x, y;
     Color color;
@@ -91,6 +93,14 @@ Instruction SplitYIns(string i, int y) {
     return res;
 }
 
+Instruction MergeIns(string i1, string i2) {
+    Instruction res;
+    res.type = tMerge;
+    res.id = i1;
+    res.oid = i2;
+    return res;
+}
+
 struct Solution {
     double score;
     vector<Instruction> ins;
@@ -104,37 +114,41 @@ struct Painter {
     int lastBlockId;
     int N, M;
     unordered_map<string, Block> blocks;
-    vector<vector<Color>> colors;
+    vector<vector<Color>> clr;
+    double opsScore;
 
     Painter() {}
     Painter(int n, int m) {
         lastBlockId = 0;
+        opsScore = 0;
         N = n;
         M = m;
         Color c;
         c[0] = c[1] = c[2] = c[3] = 255;
-        colors.assign(n, vector<Color>(m, c));
+        clr.assign(n, vector<Color>(m, c));
         for (int i = 0; i < n; i++)
             for (int j = 0; j < m; j++)
-                colors[i][j] = c;
+                clr[i][j] = c;
         blocks["0"] = Block{0, 0, N, M};
     }
 
-    bool doColor(string i, Color c) {
+    bool doColor(const string& i, Color c) {
         if (blocks.find(i) == blocks.end())
             return false;
         const auto& b = blocks[i];
+        opsScore += round(5.0 * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
         for (int i = b.r1; i < b.r2; i++)
             for (int j = b.c1; j < b.c2; j++)
-                colors[i][j] = c;
+                clr[i][j] = c;
         return true;
     }
 
-    bool doSplitX(string i, int x) {
+    bool doSplitX(const string& i, int x) {
         if (blocks.find(i) == blocks.end())
             return false;
         const auto& b = blocks[i];
         if (x <= b.c1 || x >= b.c2) return false;
+        opsScore += round(7.0 * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
         Block left = b;
         Block right = b;
         blocks.erase(blocks.find(i));
@@ -145,11 +159,12 @@ struct Painter {
         return true;
     }
 
-    bool doSplitY(string i, int y) {
+    bool doSplitY(const string& i, int y) {
         if (blocks.find(i) == blocks.end())
             return false;
         const auto& b = blocks[i];
         if (y <= b.r1 || y >= b.r2) return false;
+        opsScore += round(7.0 * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
         Block down = b;
         Block up = b;
         blocks.erase(blocks.find(i));
@@ -160,12 +175,13 @@ struct Painter {
         return true;
     }
 
-    bool doSplitPoint(string i, int x, int y) {
+    bool doSplitPoint(const string& i, int x, int y) {
         if (blocks.find(i) == blocks.end())
             return false;
         const auto& b = blocks[i];
         if (x <= b.c1 || x >= b.c2) return false;
         if (y <= b.r1 || y >= b.r2) return false;
+        opsScore += round(10.0 * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
         Block b0 = b;
         Block b1 = b;
         Block b2 = b;
@@ -182,6 +198,48 @@ struct Painter {
         return true;
     }
 
+    bool doMerge(const string& i1, const string& i2) {
+        if (blocks.find(i1) == blocks.end() || blocks.find(i2) == blocks.end())
+            return false;
+
+        const auto& bu = blocks[i1];
+        const auto& bv = blocks[i2];
+        Block nb;
+        if (bu.r2 == bv.r1 || bu.r1 == bv.r2) {
+            if (bu.c1 == bv.c1 && bu.c2 == bv.c2) {
+                if (bu.r2 == bv.r1) {
+                    nb = bu;
+                    nb.r2 = bv.r2;
+                } else {
+                    nb = bv;
+                    nb.r2 = bu.r2;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        if (bu.c2 == bv.c1 || bu.c1 == bv.c2) {
+            if (bu.r1 == bv.r1 && bu.r2 == bv.r2) {
+                if (bu.c2 == bv.c1) {
+                    nb = bu;
+                    nb.c2 = bv.c2;
+                } else {
+                    nb = bv;
+                    nb.c2 = bu.c2;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        blocks.erase(blocks.find(i1));
+        blocks.erase(blocks.find(i2));
+        lastBlockId++;
+        blocks[to_string(lastBlockId)] = nb;
+        return true;
+    }
+
     bool doInstruction(const Instruction& ins) {
         if (ins.type == tColor) {
             return doColor(ins.id, ins.color);            
@@ -191,12 +249,25 @@ struct Painter {
             return doSplitX(ins.id, ins.x);
         } else if (ins.type == tSplitY) {
             return doSplitY(ins.id, ins.y);
+        } else if (ins.type == tMerge) {
+            return doMerge(ins.id, ins.oid);
         } else return false;
+    }
+
+    int totalScore() const {
+        double res = 0;
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < M; j++) {
+                double d = 0;
+                for (int q = 0; q < 4; q++)
+                    d += sqr(clr[i][j][q] - colors[i][j][q]);
+                res += sqrt(d);
+            }
+        return round(res * 0.005 + opsScore);
     }
 };
 
 int selected_idx, test_id;
-vector<vector<Color>> colors;
 unordered_map<ll, Solution> mem;
 int S = 10;
 Painter painter;
@@ -232,10 +303,10 @@ void fileWindow() {
         for (const auto & entry : fs::directory_iterator(path)) {
             string s = entry.path().string();
             tests.emplace_back(0, s);
-            int i = 0;
+            size_t i = 0;
             while (i < s.size() && (s[i] < '0' || s[i] > '9')) i++;
             if (i >= s.size()) continue;
-            int j = i;
+            size_t j = i;
             while (s[j] >= '0' && s[j] <= '9') j++;
             sscanf(s.substr(i, j).c_str(), "%d", &tests.back().first);
         }
@@ -244,7 +315,7 @@ void fileWindow() {
         static int selected_idx = -1;
 
         if (ImGui::BeginListBox("T", ImVec2(250, ImGui::GetFrameHeightWithSpacing() * 16))) {
-            for (size_t idx = 0; idx < tests.size(); idx++) {
+            for (int idx = 0; idx < (int)tests.size(); idx++) {
                 path = tests[idx].second;
                 const bool is_selected = (idx == selected_idx);
                 if (ImGui::Selectable(to_string(tests[idx].first).c_str(), is_selected)) {
@@ -274,9 +345,9 @@ void draw() {
             ImU32 color = IM_COL32(colors[i][j][0], colors[i][j][1], colors[i][j][2], colors[i][j][3]);
             dl->AddRectFilled(QP(j, i), QP((j + 1), (i + 1)), color);
 
-            if (i < painter.colors.size() && j < painter.colors[i].size()) {
-                color = IM_COL32(painter.colors[i][j][0], painter.colors[i][j][1],
-                                 painter.colors[i][j][2], painter.colors[i][j][3]);
+            if (i < (int)painter.clr.size() && j < (int)painter.clr[i].size()) {
+                color = IM_COL32(painter.clr[i][j][0], painter.clr[i][j][1],
+                                 painter.clr[i][j][2], painter.clr[i][j][3]);
                 dl->AddRectFilled(QP(j + M + 10, i), QP((j + 1 + M + 10), (i + 1)), color);
             }
         }
@@ -420,7 +491,7 @@ void solveDP() {
             return;
         }
     }
-    res.score = round(res.score);
+    msg += "Painter score: " + to_string(painter.totalScore()) + "\n";
     string fname = "../solutions/" + to_string(test_id) + ".txt";
     freopen(fname.c_str(), "w", stdout);
     for (const auto& i : res.ins) {
