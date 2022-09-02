@@ -12,6 +12,7 @@
 
 #include "sdl_system.h"
 
+#include <functional>
 #include <filesystem>
 #include <iostream>
 #include <cmath>
@@ -55,6 +56,8 @@ struct Instruction {
             sprintf(buf, "cut [%s] [X] [%d]", id.c_str(), x);
         } else if (type == tSplitY) {
             sprintf(buf, "cut [%s] [Y] [%d]", id.c_str(), N - y);
+        } else if (type == tMerge) {
+            sprintf(buf, "merge [%s] [%s]", id.c_str(), oid.c_str());
         } else assert(false);
         return buf;
     }
@@ -204,6 +207,8 @@ struct Painter {
 
         const auto& bu = blocks[i1];
         const auto& bv = blocks[i2];
+        opsScore += round(1.0 * N * M / max((bu.r2 - bu.r1) * (bu.c2 - bu.c1),
+                                            (bv.r2 - bv.r1) * (bv.c2 - bv.c1)));
         Block nb;
         if (bu.r2 == bv.r1 || bu.r1 == bv.r2) {
             if (bu.c1 == bv.c1 && bu.c2 == bv.c2) {
@@ -500,6 +505,233 @@ void solveDP() {
     fclose(stdout);
 }
 
+void solveGena() {
+    if (N % S != 0 || M % S != 0) {
+      msg = "sorry, N and M should be divisible by S";
+      return;
+    }
+    auto start_time = 1.0 * clock() / CLOCKS_PER_SEC;
+    msg = "Running...";
+    int n = N / S;
+    int m = M / S;
+    vector<vector<vector<int>>> pref(N + 1, vector<vector<int>>(M + 1, vector<int>(4)));
+    for (int i = 0; i <= N; i++) {
+      for (int j = 0; j <= M; j++) {
+        for (int k = 0; k < 4; k++) {
+          if (i == 0 || j == 0) {
+            pref[i][j][k] = 0;
+          } else {
+            pref[i][j][k] = pref[i - 1][j][k] + pref[i][j - 1][k] - pref[i - 1][j - 1][k] + colors[i - 1][j - 1][k];
+          }
+        }
+      }
+    }
+    const int MAX_D = 255 * 255 * 4;
+    vector<double> SQRT(MAX_D + 1);
+    for (int i = 0; i <= MAX_D; i++) {
+      SQRT[i] = sqrt(i);
+    }
+    vector<vector<vector<vector<int>>>> dp(n + 1, vector<vector<vector<int>>>(m + 1, vector<vector<int>>(n + 1, vector<int>(m + 1))));
+    int mode = 0;
+    auto PaintCost = [&](int x, int y) -> int {
+      assert(x > 0 && y > 0);
+      if (x == n && y == m) {
+        return 5;
+      }
+      if (x == n) {
+        return 7 + llround(5.0 * m / y) + llround(1.0 * m / max(y, m - y));
+      }
+      if (y == m) {
+        return 7 + llround(5.0 * n / x) + llround(1.0 * n / max(x, n - x));
+      }
+      int ret = 10 + llround(5.0 * (n * m) / (x * y));
+      int cand1 = llround(1.0 * (n * m) / (max(x, n - x) * y));
+      cand1    += llround(1.0 * (n * m) / (max(x, n - x) * (m - y)));
+      cand1    += llround(1.0 * m / max(y, m - y));
+      int cand2 = llround(1.0 * (n * m) / (x * max(y, m - y)));
+      cand2    += llround(1.0 * (n * m) / ((n - x) * max(y, m - y)));
+      cand2    += llround(1.0 * n / max(x, m - x));
+      return ret + min(cand1, cand2);
+    };
+    for (int xa = n - 1; xa >= 0; xa--) {
+      auto cur_time = 1.0 * clock() / CLOCKS_PER_SEC;
+      msg = "n = " + to_string(n) + ", xa = " + to_string(xa) + ", time = " + to_string(cur_time - start_time) + " s";
+      for (int ya = m - 1; ya >= 0; ya--) {
+        for (int xb = xa + 1; xb <= n; xb++) {
+          for (int yb = ya + 1; yb <= m; yb++) {
+            int area = (xb - xa) * (yb - ya) * S * S;
+            Color paint_into;
+            for (int k = 0; k < 4; k++) {
+              int sum = pref[yb * S][xb * S][k] - pref[ya * S][xb * S][k] - pref[yb * S][xa * S][k] + pref[ya * S][xa * S][k];
+              paint_into[k] = (2 * sum + area) / (2 * area);
+            }
+            double diff = 0;
+            for (int y = ya * S; y < yb * S; y++) {
+              for (int x = xa * S; x < xb * S; x++) {
+                int sum_sq = 0;
+                for (int k = 0; k < 4; k++) {
+                  sum_sq += sqr(colors[y][x][k] - paint_into[k]);
+                }
+                diff += SQRT[sum_sq];
+              }
+            }
+            long long penalty = llround(diff * 5);
+            penalty += 1000 * PaintCost((mode & 1) ? xb : n - xa, (mode & 2) ? yb : m - ya);
+            int ft = penalty;
+            for (int x = xa + 1; x < xb; x++) {
+              ft = min(ft, dp[xa][ya][x][yb] + dp[x][ya][xb][yb]);
+            }
+            for (int y = ya + 1; y < yb; y++) {
+              ft = min(ft, dp[xa][ya][xb][y] + dp[xa][y][xb][yb]);
+            }
+            dp[xa][ya][xb][yb] = ft;
+          }
+        }
+      }
+    }
+    msg = "dp = " + to_string(dp[0][0][n][m] / 1000);
+    vector<pair<array<int, 4>, Color>> rects;
+    vector<vector<int>> rect_id(n, vector<int>(m, -1));
+    function<void(int, int, int, int)> Reconstruct = [&](int xa, int ya, int xb, int yb) {
+      int ft = dp[xa][ya][xb][yb];
+      for (int x = xa + 1; x < xb; x++) {
+        if (dp[xa][ya][x][yb] + dp[x][ya][xb][yb] == ft) {
+          Reconstruct(xa, ya, x, yb);
+          Reconstruct(x, ya, xb, yb);
+          return;
+        }
+      }
+      for (int y = ya + 1; y < yb; y++) {
+        if (dp[xa][ya][xb][y] + dp[xa][y][xb][yb] == ft) {
+          Reconstruct(xa, ya, xb, y);
+          Reconstruct(xa, y, xb, yb);
+          return;
+        }
+      }
+      int area = (xb - xa) * (yb - ya) * S * S;
+      Color paint_into;
+      for (int k = 0; k < 4; k++) {
+        int sum = pref[yb * S][xb * S][k] - pref[ya * S][xb * S][k] - pref[yb * S][xa * S][k] + pref[ya * S][xa * S][k];
+        paint_into[k] = (2 * sum + area) / (2 * area);
+      }
+      for (int x = xa; x < xb; x++) {
+        for (int y = ya; y < yb; y++) {
+          rect_id[x][y] = (int) rects.size();
+        }
+      }
+      rects.emplace_back(array<int, 4>{xa, ya, xb, yb}, paint_into);
+    };
+    Reconstruct(0, 0, n, m);
+    Solution res;
+    res.score = dp[0][0][n][m] / 1000;
+    if (mode == 0) {
+      int rect_cnt = (int) rects.size();
+      vector<vector<int>> graph(rect_cnt);
+      vector<int> indegree(rect_cnt);
+      auto AddEdge = [&](int i, int j) {
+        if (i != j) {
+          graph[i].push_back(j);
+          indegree[j] += 1;
+        }
+      };
+      for (int x = 0; x < n; x++) {
+        for (int y = 0; y < m - 1; y++) {
+          AddEdge(rect_id[x][y], rect_id[x][y + 1]);
+        }
+      }
+      for (int x = 0; x < n - 1; x++) {
+        for (int y = 0; y < m; y++) {
+          AddEdge(rect_id[x][y], rect_id[x + 1][y]);
+        }
+      }
+      vector<int> que;
+      for (int i = 0; i < rect_cnt; i++) {
+        if (indegree[i] == 0) {
+          que.push_back(i);
+        }
+      }
+      for (int b = 0; b < (int) que.size(); b++) {
+        for (int u : graph[que[b]]) {
+          if (--indegree[u] == 0) {
+            que.push_back(u);
+          }
+        }
+      }
+      assert((int) que.size() == rect_cnt);
+      int idx = 0;
+      for (int it = 0; it < rect_cnt; it++) {
+        int i = que[it];
+        int xa = rects[i].first[0];
+        int ya = rects[i].first[1];
+/*        int xb = rects[i].first[2];
+        int yb = rects[i].first[3];
+        cerr << "id = " << i << ", xa = " << xa << ", ya = " << ya << ", xb = " << xb << ", yb = " << yb << endl;*/
+        Color paint_into = rects[i].second;
+        if (xa == 0 && ya == 0) {
+          res.ins.push_back(ColorIns(to_string(idx), paint_into));
+        }
+        if (xa == 0 && ya > 0) {
+          res.ins.push_back(SplitYIns(to_string(idx), ya * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".0", paint_into));
+          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          idx += 1;
+        }
+        if (xa > 0 && ya == 0) {
+          res.ins.push_back(SplitXIns(to_string(idx), xa * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
+          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          idx += 1;
+        }
+        if (xa > 0 && ya > 0) {
+          res.ins.push_back(SplitPointIns(to_string(idx), xa * S, ya * S));
+          res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
+          int x = n - xa;
+          int y = n - ya;
+          int cand1 = llround(1.0 * (n * m) / (max(x, n - x) * y));
+          cand1    += llround(1.0 * (n * m) / (max(x, n - x) * (m - y)));
+          cand1    += llround(1.0 * m / max(y, m - y));
+          int cand2 = llround(1.0 * (n * m) / (x * max(y, m - y)));
+          cand2    += llround(1.0 * (n * m) / ((n - x) * max(y, m - y)));
+          cand2    += llround(1.0 * n / max(x, m - x));
+          if (cand1 < cand2) {
+            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".2"));
+            res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
+          } else {
+            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".0"));
+            res.ins.push_back(MergeIns(to_string(idx) + ".2", to_string(idx) + ".1"));
+          }
+          res.ins.push_back(MergeIns(to_string(idx + 1), to_string(idx + 2)));
+          idx += 3;
+        }
+      }
+    }
+    if (mode == 1) {
+      // ???
+    }
+    if (mode == 2) {
+      // ???
+    }
+    if (mode == 3) {
+      // ???
+    }
+    painter = Painter(N, M);
+    msg = "Solved with penalty " + to_string(res.score) + "\n";
+    for (const auto& ins : res.ins) {
+        if (!painter.doInstruction(ins)) {
+            msg += "Bad instruction: " + ins.text() + "\n";
+            return;
+        }
+    }
+    msg += "Painter score: " + to_string(painter.totalScore()) + "\n";
+    res.score = round(res.score);
+    string fname = "../solutions/" + to_string(test_id) + ".txt";
+    freopen(fname.c_str(), "w", stdout);
+    for (const auto& i : res.ins) {
+        cout << i.text() << endl;
+    }
+    fclose(stdout);
+}
+
 void optsWindow() {
     if (ImGui::Begin("Solution")) {
         ImGui::Checkbox("SplitX", &useSplitX);
@@ -511,6 +743,16 @@ void optsWindow() {
             cerr << "Spawn thread!\n";
             thread solveThread(solveDP);
             solveThread.detach();
+        }
+        if (ImGui::Button("Solve Gena")) {
+            if (0) {
+                cerr << "Run in main thread!\n";
+                solveGena();
+            } else {
+                cerr << "Spawn thread!\n";
+                thread solveThread(solveGena);
+                solveThread.detach();
+            }
         }
         ImGui::Text("%s", msg.c_str());
     }
