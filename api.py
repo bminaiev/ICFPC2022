@@ -42,11 +42,12 @@ def save_standings():
     mintest = {}
     for team in js['users']:
         for test in team['results']:
-            if test['submission_count'] == 0:
-                continue
             tid = test['problem_id']
             if tid not in mintest:
-                mintest[tid] = 10 ** 10
+                mintest[tid] = 10 ** 9
+                mytest[tid] = 10 ** 9
+            if test['submission_count'] == 0:
+                continue
             mintest[tid] = min(mintest[tid], test['min_cost'])
             if team['team_name'] == 'RGBTeam':
                 mytest[tid] = test['min_cost']
