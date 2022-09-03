@@ -917,7 +917,7 @@ void solveOpt() {
       return (px > py ? x : y);
     };
     vector<vector<int>> cost(N, vector<int>(N, 0));
-    vector<vector<Color>> paint_into(N, vector<Color>(N));
+    vector<vector<Color>> paint_into(N, vector<Color>(N, {-1, -1, -1, -1}));
 //    pos_in_corners[0][0] = 0;
 //    corners.emplace_back(0, 0);
     int total = 0;
@@ -925,15 +925,17 @@ void solveOpt() {
       total -= cost[i][j];
       assert(top[i][j] == make_pair(i, j));
       assert(!cells[i][j].empty());
-      paint_into[i][j] = {0, 0, 0, 0};
-      for (auto& cell : cells[i][j]) {
-        for (int k = 0; k < 4; k++) {
-          paint_into[i][j][k] += colors[cell.second][cell.first][k];
+      if (1 || paint_into[i][j][0] == -1) {
+        paint_into[i][j] = {0, 0, 0, 0};
+        for (auto& cell : cells[i][j]) {
+          for (int k = 0; k < 4; k++) {
+            paint_into[i][j][k] += colors[cell.second][cell.first][k];
+          }
         }
-      }
-      int area = (int) cells[i][j].size();
-      for (int k = 0; k < 4; k++) {
-        paint_into[i][j][k] = (2 * paint_into[i][j][k] + area) / (2 * area);
+        int area = (int) cells[i][j].size();
+        for (int k = 0; k < 4; k++) {
+          paint_into[i][j][k] = (2 * paint_into[i][j][k] + area) / (2 * area);
+        }
       }
       cost[i][j] = base_cost[i][j];
       double diff = 0;
