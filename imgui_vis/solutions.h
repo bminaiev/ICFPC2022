@@ -1111,11 +1111,11 @@ void solveOpt() {
     }
     cerr << "total = " << res.score + total << endl;
 //    for (int i = 0; i < N; i += 40) for (int j = 0; j < N; j += 40) if (i > 0 || j > 0) AddCorner(i, j);
-    #define wlog(operationType) msg.clear() << "it " << it << " [" << operationType << "] cnt: " << corners.size() << ", total: " << res.score + total / 1000 << " (" << res.score << " merge), best: " << res.score + best_total / 1000 << ", time: " << GetTime() << + "s\n"
+    int qit = 0;
+    #define wlog(operationType) msg.clear() << "it " << it << "|" << qit << " [" << operationType << "] cnt: " << corners.size() << ", total: " << res.score + total / 1000 << " (" << res.score << " merge), best: " << res.score + best_total / 1000 << ", time: " << GetTime() << + "s\n"
     #define setlocal localTries = 100; localI = i; localJ = j;
     int localTries = 0;
     int localI = -1, localJ = -1;
-    int qit = 0;
     vector<pair<pair<int, int>, Color>> rects;
     rects.emplace_back(make_pair(0, 0), paint_into[0][0]);
     for (auto& p : corners) {
@@ -1145,6 +1145,7 @@ void solveOpt() {
             if (abs(corners[cc].first - i) < 42 && abs(corners[cc].second - j) < 42) {
                 toMove.emplace_back(corners[cc], cc);
             }
+        if (toMove.size() > 5) toMove.resize(5);
         for (auto [p, id] : toMove) {
             auto [ii, jj] = p;
             RemoveCorner(ii, jj);
@@ -1166,35 +1167,39 @@ void solveOpt() {
         int id = rng() % (int) corners.size();
         int i = corners[id].first;
         int j = corners[id].second;
+        bool bad = false;
         if (localTries > 0) {
             localTries--;
             if (abs(i - localI) > 40 || abs(j - localJ) > 40) {
-                continue;
+                bad = true;
             }
         }
-        auto old_total = total;
-        RemoveCorner(i, j);
-        AddCorner(i, j, -1);
-        if (total <= old_total || exp((old_total - total) / 10000.0 / T) > (rng() % 1000) / 1000.0) {
-          wlog("SWP");
-          setlocal
-        } else {
-          RemoveCorner(i, j);
-          AddCorner(i, j, id);
+        if (!bad) {
+            auto old_total = total;
+            RemoveCorner(i, j);
+            AddCorner(i, j, -1);
+            if (total <= old_total || exp((old_total - total) / 10000.0 / T) > (rng() % 1000) / 1000.0) {
+              wlog("SWP");
+              setlocal
+            } else {
+              RemoveCorner(i, j);
+              AddCorner(i, j, id);
+            }
         }
       }
       if (!corners.empty()) {
         int id = rng() % (int) corners.size();
         int i = corners[id].first;
         int j = corners[id].second;
+        bool bad = false;
         if (localTries > 0) {
             localTries--;
             if (abs(i - localI) > 40 || abs(j - localJ) > 40) {
-                continue;
+                bad = true;
             }
         }
         int conts = 0;
-        while (true) {
+        while (!bad) {
           int ni = i - 1 + rng() % 3;
           int nj = j - 1 + rng() % 3;
           if (ni < 0 || nj < 0 || ni >= N || nj >= N || top[ni][nj] == make_pair(ni, nj) || (ni == 0 && nj == 0)) {

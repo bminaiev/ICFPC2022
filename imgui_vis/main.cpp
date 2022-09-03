@@ -427,7 +427,7 @@ void optsWindow() {
     if (ImGui::Begin("Solution")) {
         ImGui::Text("Current test: %d", currentTestId);
         if (currentTestId >= 1) {
-            // ImGui::DragInt("DP Step", &S, 1, 2, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::DragInt("DP Step", &S, 1, 2, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
             // ImGui::DragInt("Direction", &mode, 1, 0, 3, "D=%d", ImGuiSliderFlags_AlwaysClamp);
             ImGui::SliderFloat("Temperature", &T, 0.00001f, 0.2f, "T=%.5f");
             ImGui::Checkbox("Run in main thread", &runInMainThread);
@@ -465,7 +465,7 @@ void optsWindow() {
             ImGui::SameLine(260);
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.32f, 0.32f, 0.0f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.54f, 0.54f, 0.1f, 1.0f));
-            if (ImGui::Button("Hard remove")) {
+            if (ImGui::Button("Hard Move")) {
                 hardMove = true;
             }            
             ImGui::PopStyleColor(2);
