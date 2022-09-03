@@ -9,13 +9,21 @@ constexpr int tSplitY = 4;
 constexpr int tMerge = 5;
 constexpr int tSwap = 6;
 
+struct RawBlock {
+    string id;
+    int blX, blY, trX, trY;
+    int r, g, b, a;
+};
+
 int N, M;
 vector<vector<Color>> colors;
+vector<RawBlock> rawBlocks;
 bool running;
 
 struct Input {
     int N, M;
     vector<vector<Color>> colors;
+    vector<RawBlock> rawBlocks;
 };
 
 struct Instruction {
@@ -109,18 +117,21 @@ struct Painter {
     double opsScore;
 
     Painter() {}
-    Painter(int n, int m) {
-        lastBlockId = 0;
+    Painter(int n, int m, const vector<RawBlock>& rb) {
+        lastBlockId = rb.size() - 1;
         opsScore = 0;
         N = n;
         M = m;
         Color c;
         c[0] = c[1] = c[2] = c[3] = 255;
         clr.assign(n, vector<Color>(m, c));
-        for (int i = 0; i < n; i++)
-            for (int j = 0; j < m; j++)
-                clr[i][j] = c;
-        blocks["0"] = Block{0, 0, N, M};
+        for (const auto& b : rb) {
+            c[0] = b.r; c[1] = b.g; c[2] = b.b; c[3] = b.a;
+            for (int x = b.blX; x < b.trX; x++)
+                for (int y = b.blY; y < b.trY; y++)
+                    clr[y][x] = c;
+            blocks[b.id] = Block{b.blY, b.blX, b.trY, b.trX};
+        }        
     }
 
     bool doColor(const string& i, Color c) {
@@ -190,11 +201,14 @@ struct Painter {
     }
 
     bool doMerge(const string& i1, const string& i2) {
+        // cerr << "doMerge " << i1 << " " << i2 << endl;
         if (blocks.find(i1) == blocks.end() || blocks.find(i2) == blocks.end())
             return false;
 
         const auto& bu = blocks[i1];
         const auto& bv = blocks[i2];
+        // cerr << bu.r1 << "," << bu.c1 << " - " << bu.r2 << "," << bu.c2 << endl;
+        // cerr << bv.r1 << "," << bv.c1 << " - " << bv.r2 << "," << bv.c2 << endl;
         opsScore += round(1.0 * N * M / max((bu.r2 - bu.r1) * (bu.c2 - bu.c1),
                                             (bv.r2 - bv.r1) * (bv.c2 - bv.c1)));
         Block nb;
@@ -430,7 +444,7 @@ void solveDP2() {
     mg.clear();
     memset(f, 0, sizeof(f));
     for (int r = N - S; r >= 0; r -= S) {
-    	msg.clear() << "Running on row " << r << "...\n";
+        msg.clear() << "Running on row " << r << "...\n";
         cerr << r << " " << GetTime() << "s\n";
         for (int c = M - S; c >= 0; c -= S) {
             f[r][c] = 1e9;
@@ -451,6 +465,39 @@ int aux[201][201];
 int mode = 0;
 
 vector<pair<int, int>> dp_corners;
+
+pair<Solution, int> initialMerge() {
+    Solution res;
+    int blocksPerSide = round(sqrt(rawBlocks.size()));
+    assert(N == M);
+    int blockSize = N / blocksPerSide;
+    int bid = 0;
+    int nextBlockId = rawBlocks.size();
+    res.score = 0;
+    vector<int> vertBlocks;
+    for (int i = 0; i < blocksPerSide; i++) {
+        int prevBlockId = bid;
+        bid++;
+        for (int j = 1; j < blocksPerSide; j++) {
+            res.ins.push_back(MergeIns(to_string(prevBlockId), to_string(bid)));
+            res.score += mergeCost(blockSize, blockSize * j, blockSize);
+            prevBlockId = nextBlockId;
+            nextBlockId++;
+            bid++;
+        }
+        vertBlocks.push_back(prevBlockId);
+        // cerr << prevBlockId << " ";
+    }
+    cerr << "\n";
+    int prevBlockId = vertBlocks[0];
+    for (int i = 1; i < blocksPerSide; i++) {
+        res.ins.push_back(MergeIns(to_string(prevBlockId), to_string(vertBlocks[i])));
+        res.score += mergeCost(N, blockSize * i, blockSize);
+        prevBlockId = nextBlockId;
+        nextBlockId++;
+    }
+    return {res, nextBlockId - 1};
+}
 
 void solveGena(int S, int mode) {
 /*    if (S == -1) {
@@ -612,8 +659,8 @@ void solveGena(int S, int mode) {
       rects.emplace_back(array<int, 4>{xa, ya, xb, yb}, paint_into);
     };
     Reconstruct(0, 0, n, m);
-    Solution res;
-    res.score = dp[aux[0][n]][aux[0][m]] / 1000;
+    auto [res, idx] = initialMerge(); 
+    res.score += dp[aux[0][n]][aux[0][m]] / 1000;
     int rect_cnt = (int) rects.size();
     vector<vector<int>> graph(rect_cnt);
     vector<int> indegree(rect_cnt);
@@ -665,7 +712,6 @@ void solveGena(int S, int mode) {
       return cand1 < cand2;
     };
     dp_corners.clear();
-    int idx = 0;
     for (int it = 0; it < rect_cnt; it++) {
       int i = que[it];
       int xa = rects[i].first[0];
@@ -1062,7 +1108,7 @@ void solveOpt() {
           RemoveCorner(i, j);
           AddCorner(ni, nj, id);
           if (total <= old_total) {
-          	msg.clear() << "it = " << it << ", MOV, cnt = " << corners.size() << ", total = " << total / 1000 << ", time = " << GetTime() << + "s\n";
+            msg.clear() << "it = " << it << ", MOV, cnt = " << corners.size() << ", total = " << total / 1000 << ", time = " << GetTime() << + "s\n";
             i = ni;
             j = nj;
           } else {
@@ -1119,8 +1165,7 @@ void solveOpt() {
       cand2    += llround(1.0 * n / max(x, m - x));
       return cand1 < cand2;
     };
-    Solution res;
-    int idx = 0;
+    auto [res, idx] = initialMerge();
     for (int it = 0; it < (int) rects.size(); it++) {
       int i = it;
       int xa = rects[i].first.first;
@@ -1157,7 +1202,7 @@ void solveOpt() {
       }
     }
 
-    res.score = round(total * 0.001);
+    res.score += round(total * 0.001);
     msg.clear() << "Duration: " << GetTime() << "s\n";
     postprocess(res);
 }

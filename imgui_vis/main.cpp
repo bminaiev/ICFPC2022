@@ -60,14 +60,24 @@ double shiftX, shiftY;
 
 
 Input readInput(const string& fname) {
-    freopen(fname.c_str(), "r", stdin);
     Input res;
-    cin >> res.N >> res.M;
+
+    ifstream fin(fname);
+    fin >> res.N >> res.M;
     res.colors.assign(res.N, vector<Color>(res.M, Color()));
     for (int i = 0; i < res.N; i++)
         for (int j = 0; j < res.M; j++)
             for (int q = 0; q < 4; q++)
-                cin >> res.colors[i][j][q];
+                fin >> res.colors[i][j][q];
+
+    int B;
+    fin >> B;
+    for (int i = 0; i < B; i++) {
+        res.rawBlocks.push_back(RawBlock{});
+        auto& b = res.rawBlocks.back();
+        fin >> b.id >> b.blX >> b.blY >> b.trX >> b.trY >> b.r >> b.g >> b.b >> b.a;
+    }
+    fin.close();
     return res;
 }
 
@@ -76,10 +86,11 @@ void readInputAndStoreAsGlobal(const string& fname) {
     N = i.N;
     M = i.M;
     colors = i.colors;
+    rawBlocks = i.rawBlocks;
 }
 
 void postprocess(Solution& res) {
-    painter = Painter(N, M);
+    painter = Painter(N, M, rawBlocks);
     msg << "Solved with penalty " << res.score << "\n";
     for (const auto& ins : res.ins) {
         if (!painter.doInstruction(ins)) {
@@ -150,7 +161,7 @@ Solution loadSolution(const Input& in, const string& filepath) {
             return res;
         }
     }
-    Painter p(in.N, in.M);
+    Painter p(in.N, in.M, in.rawBlocks);
     for (const auto& ins : res.ins) {
         if (!p.doInstruction(ins)) {
             cerr << "Bad instruction in " + s + ": " + ins.text() + "\n";
@@ -239,7 +250,7 @@ void fileWindow() {
                 Input in = readInput(s);
                 cerr << "read input " << in.N << "x" << in.M << endl;
                 Solution sol = loadSolution(in, solutionsPath + to_string(test_id) + ".txt");
-                Painter p(in.N, in.M);
+                Painter p(in.N, in.M, in.rawBlocks);
                 for (const auto& ins : sol.ins) {
                     if (!p.doInstruction(ins)) {
                         cerr << "Bad instruction in " + s + ": " + ins.text() + "\n";
