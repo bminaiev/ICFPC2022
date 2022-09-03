@@ -72,7 +72,7 @@ endif
 ## BUILD RULES
 ##---------------------------------------------------------------------
 
-%.o:%.cpp api.h solutions.h common.h
+%.o:%.cpp api.h solutions.h common.h sdl_system.h
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 %.o:$(IMGUI_DIR)/%.cpp

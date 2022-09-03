@@ -45,7 +45,10 @@ struct SDLWrapper {
         SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
         SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
         SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-        window = SDL_CreateWindow("My Vis", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
+        if (SDL_GetNumVideoDisplays() > 1)
+            window = SDL_CreateWindow("My Vis", SDL_WINDOWPOS_CENTERED_DISPLAY(1), SDL_WINDOWPOS_CENTERED_DISPLAY(1), 2345, 1357, window_flags);
+        else
+            window = SDL_CreateWindow("My Vis", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
         gl_context = SDL_GL_CreateContext(window);
         SDL_GL_MakeCurrent(window, gl_context);
         SDL_GL_SetSwapInterval(1); // Enable vsync

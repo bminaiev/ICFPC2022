@@ -80,14 +80,14 @@ void readInputAndStoreAsGlobal(const string& fname) {
 
 void postprocess(Solution& res) {
     painter = Painter(N, M);
-    msg += "Solved with penalty " + to_string(res.score) + "\n";
+    msg << "Solved with penalty " << res.score << "\n";
     for (const auto& ins : res.ins) {
         if (!painter.doInstruction(ins)) {
-            msg += "Bad instruction: " + ins.text() + "\n";
+            msg << "Bad instruction: " << ins.text() << "\n";
             return;
         }
     }
-    msg += "Painter score: " + to_string(painter.totalScore(colors)) + "\n";
+    msg << "Painter score: " << painter.totalScore(colors) << "\n";
     res.score = painter.totalScore(colors);
     if (myScores[currentTestId] == -1 || res.score < myScores[currentTestId]) {
         string fname = "../solutions/" + to_string(currentTestId) + ".txt";
@@ -350,8 +350,7 @@ void draw() {
 
             if (i < (int)painter.clr.size() && j < (int)painter.clr[i].size()) {
                 c = painter.clr[N - 1 - i][j];
-                color = IM_COL32(c[0], c[1],
-                                 c[2], c[3]);
+                color = IM_COL32(c[0], c[1], c[2], c[3]);
                 dl->AddRectFilled(QP(j + M + 10, i), QP((j + 1 + M + 10), (i + 1)), color);
             }
         }
@@ -445,6 +444,10 @@ int main(int, char**)
     thread updateThread(updateStandingsTimed);
     SDLWrapper sw;
     if (!sw.init()) return -1;
+
+    if (SDL_GetNumVideoDisplays() > 1) {
+        scale = 2;
+    }
 
     while (true) {
         if (sw.checkQuit()) break;

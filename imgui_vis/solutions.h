@@ -430,7 +430,7 @@ void solveDP2() {
     mg.clear();
     memset(f, 0, sizeof(f));
     for (int r = N - S; r >= 0; r -= S) {
-        msg = "Running on row " + to_string(r) + "...\n";
+    	msg.clear() << "Running on row " << r << "...\n";
         cerr << r << " " << GetTime() << "s\n";
         for (int c = M - S; c >= 0; c -= S) {
             f[r][c] = 1e9;
@@ -442,7 +442,7 @@ void solveDP2() {
             }
         }
     }
-    cerr << "Result: " << f[0][0] << endl;
+    msg.clear() << "Result: " << f[0][0] << "\n";
 }
 
 int dp[20100][20100];
@@ -460,11 +460,11 @@ void solveGena(int S, int mode) {
       mode = ::mode;
     }*/
     if (S < 2) {
-      msg = "sorry, S must be at least 2";
+      msg.clear() << "sorry, S must be at least 2";
       return;
     }
     if (N % S != 0 || M % S != 0) {
-      msg = "sorry, N and M should be divisible by S";
+      msg.clear() << "sorry, N and M should be divisible by S";
       return;
     }
     auto start_time = Time::now();
@@ -473,7 +473,7 @@ void solveGena(int S, int mode) {
       std::chrono::duration<double> fs = cur_time - start_time;
       return std::chrono::duration_cast<chrono_ms>(fs).count() * 0.001;
     };
-    msg = "Running...";
+    msg.clear() << "Running...";
     int n = N / S;
     int m = M / S;
     vector<vector<vector<int>>> pref(N + 1, vector<vector<int>>(M + 1, vector<int>(4)));
@@ -525,7 +525,7 @@ void solveGena(int S, int mode) {
     mt19937 rng(58);
     for (int xa = n - 1; xa >= 0; xa--) {
       auto time_elapsed = GetTime();
-      msg = "n = " + to_string(n) + ", xa = " + to_string(xa) + ", time = " + to_string(time_elapsed) + " s";
+      msg.clear() << "n = " << n << ", xa = " << xa << ", time = " << time_elapsed << "s\n";
       for (int ya = m - 1; ya >= 0; ya--) {
         for (int xb = xa + 1; xb <= n; xb++) {
           for (int yb = ya + 1; yb <= m; yb++) {
@@ -579,7 +579,7 @@ void solveGena(int S, int mode) {
         }
       }
     }
-    msg = "dp = " + to_string(dp[aux[0][n]][aux[0][m]] / 1000);
+    msg << "dp = " << dp[aux[0][n]][aux[0][m]] / 1000 << "\n";
     vector<pair<array<int, 4>, Color>> rects;
     vector<vector<int>> rect_id(n, vector<int>(m, -1));
     function<void(int, int, int, int)> Reconstruct = [&](int xa, int ya, int xb, int yb) {
@@ -796,7 +796,7 @@ void solveGena(int S, int mode) {
       }
     }
 
-    msg = "Duration: " + to_string(GetTime()) + "s\n";
+    msg << "Duration: " << GetTime() << "s\n";
     postprocess(res);
 }
 
@@ -809,7 +809,7 @@ void solveOpt() {
       std::chrono::duration<double> fs = cur_time - start_time;
       return std::chrono::duration_cast<chrono_ms>(fs).count() * 0.001;
     };
-    msg = "Running...";
+    msg.clear() << "Running...\n";
     vector<vector<pair<int, int>>> top(N, vector<pair<int, int>>(N));
     vector<vector<list<pair<int, int>>::iterator>> iter(N, vector<list<pair<int, int>>::iterator>(N));
     vector<vector<list<pair<int, int>>>> cells(N, vector<list<pair<int, int>>>(N));
@@ -1006,7 +1006,6 @@ void solveOpt() {
       }
     }
 //    for (int i = 0; i < N; i += 40) for (int j = 0; j < N; j += 40) if (i > 0 || j > 0) AddCorner(i, j);
-    msg = "cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000);
     for (int it = 0; it < 1000000; it++) {
       if (GetTime() > optSeconds) {
         break;
@@ -1019,7 +1018,7 @@ void solveOpt() {
         RemoveCorner(i, j);
         AddCorner(i, j, -1);
         if (total <= old_total) {
-          msg = "it = " + to_string(it) + ", SWP, cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000) + ", time = " + to_string(GetTime()) + " s";
+          msg.clear() << "it = " << it << ", SWP, cnt = " << corners.size() << ", total = " << total / 1000 << ", time = " << GetTime() << + "s\n";
         } else {
           RemoveCorner(i, j);
           AddCorner(i, j, id);
@@ -1063,7 +1062,7 @@ void solveOpt() {
           RemoveCorner(i, j);
           AddCorner(ni, nj, id);
           if (total <= old_total) {
-            msg = "it = " + to_string(it) + ", MOV, cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000) + ", time = " + to_string(GetTime()) + " s";
+          	msg.clear() << "it = " << it << ", MOV, cnt = " << corners.size() << ", total = " << total / 1000 << ", time = " << GetTime() << + "s\n";
             i = ni;
             j = nj;
           } else {
@@ -1083,7 +1082,7 @@ void solveOpt() {
         auto old_total = total;
         AddCorner(i, j, -1);
         if (total <= old_total) {
-          msg = "it = " + to_string(it) + ", ADD, cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000) + ", time = " + to_string(GetTime()) + " s";
+          msg.clear() << "it = " << it << ", ADD, cnt = " << corners.size() << ", total = " << total / 1000 << ", time = " << GetTime() << + "s\n";
         } else {
           RemoveCorner(i, j);
         }
@@ -1094,7 +1093,7 @@ void solveOpt() {
         auto old_total = total;
         RemoveCorner(i, j);
         if (total <= old_total) {
-          msg = "it = " + to_string(it) + ", REM, cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000) + ", time = " + to_string(GetTime()) + " s";
+          msg.clear() << "it = " << it << ", REM, cnt = " << corners.size() << ", total = " << total / 1000 << ", time = " << GetTime() << + "s\n";
         } else {
           AddCorner(i, j, id);
         }
@@ -1159,6 +1158,6 @@ void solveOpt() {
     }
 
     res.score = round(total * 0.001);
-    msg = "Duration: " + to_string(GetTime()) + "s\n";
+    msg.clear() << "Duration: " << GetTime() << "s\n";
     postprocess(res);
 }
