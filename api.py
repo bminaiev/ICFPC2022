@@ -1,7 +1,7 @@
 import requests, sys, shutil, json
 
 headers = {
-    'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1haWxyb21rYUBnbWFpbC5jb20iLCJleHAiOjE2NjIyMDc1ODksIm9yaWdfaWF0IjoxNjYyMTIxMTg5fQ.euzTfElCK7Jhuu-s3EgjxDIbDxct6yNrwSvxwSC9IJM'
+    'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1haWxyb21rYUBnbWFpbC5jb20iLCJleHAiOjE2NjIyOTc1MzIsIm9yaWdfaWF0IjoxNjYyMjExMTMyfQ.Uz68RJBnRdKHnJHYGUwzYxYccg-wqNDPZITGSUhj1C8'
 }
 
 submit_url = 'https://robovinci.xyz/api/submissions/{}/create'
