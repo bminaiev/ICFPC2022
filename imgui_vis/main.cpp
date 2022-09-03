@@ -336,6 +336,7 @@ void fileWindow() {
                     ImGui::Text("%d", get<2>(testResults[idx]));
                     ImGui::TableNextColumn();
                     int diff = get<1>(testResults[idx]) - get<2>(testResults[idx]);
+                    if (diff == 0) diff = get<1>(testResults[idx]) - get<3>(testResults[idx]);
                     ImVec4 dc(1.0f, 0.0f, 0.0f, 1.0f);
                     if (diff < 1000) dc = ImVec4(0.5 + diff / 2000.0f, 0.5 - diff / 2000.0f, 0.5 - diff / 2000.0f, 1.0f);
                     if (diff <= 0) dc = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);

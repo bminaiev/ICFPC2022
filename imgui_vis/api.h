@@ -5,7 +5,7 @@
 using namespace std;
 
 vector<string> standings;
-vector<tuple<int, int, int>> testResults;
+vector<tuple<int, int, int, int>> testResults;
 string requestResult;
 
 void apiUpdateStandings() {
@@ -25,11 +25,11 @@ void apiUpdateStandings() {
 
     infile = ifstream("tests.txt");
     testResults.clear();
-    int id, my, best;
+    int id, my, best, secondBest;
     while (getline(infile, s)) {
         stringstream ss(s);
-        ss >> id >> my >> best;
-        testResults.emplace_back(id, my, best);
+        ss >> id >> my >> best >> secondBest;
+        testResults.emplace_back(id, my, best, secondBest);
     }
     sort(testResults.begin(), testResults.end());
 }

@@ -142,37 +142,30 @@ def save_standings():
                 print(line)
                 fout.write(line + "\n")
 
-    mintest = {}
-    mintestU = {}
+    mintest = defaultdict(list)
     for team in js['users']:
         for test in team['results']:
             tid = test['problem_id']
-            if tid not in mintest:
-                mintest[tid] = 10 ** 9
-                mintestU[tid] = 10 ** 9
             if test['submission_count'] == 0:
                 continue
-            mintest[tid] = min(mintest[tid], test['min_cost'])
-            if team['team_name'] == 'Unagi':
-                mintestU[tid] = min(mintestU[tid], test['min_cost'])
-
+            mintest[tid].append(test['min_cost'])
             test_results.append((test['min_cost'], tid, team['team_name']))
-            # if tid == 1:
-            #     print(test['min_cost'])
 
-    # s = 0
-    # for tid in range(1, 26):
-    #     s += mintestU[tid]
-    # print("Unagi 1-25:", s)
+
 
     with open("tests.txt", "w") as fout:
         print('===== Tests =====')
         min_total = 0
         for tid in sorted(mintest.keys()):
-            fout.write(f"{tid} {mytest[tid]} {mintest[tid]}\n")
-            print("{0:2d} {1:8d}:our {2:8d}:best {3:8d}:{4}".format(tid, mytest[tid], mintest[tid],
-                mytest[tid] - mintest[tid], "loss" if mytest[tid] > mintest[tid] else "win"))
-            min_total += mintest[tid]
+            mintest[tid].sort()
+            while len(mintest[tid]) < 2:
+                mintest[tid].append(10 ** 9)
+
+            fout.write(f"{tid} {mytest[tid]} {mintest[tid][0]} {mintest[tid][1]}\n")
+            print("{0:2d} {1:8d}:our {2:8d}:best {3:8d}:{4}".format(tid, mytest[tid], mintest[tid][0],
+                mytest[tid] - mintest[tid][0] if mytest[tid] > mintest[tid][0] else mytest[tid] - mintest[tid][1],
+                "loss" if mytest[tid] > mintest[tid][0] else "adv"))
+            min_total += mintest[tid][0] if mintest[tid][0] < 10 ** 9 else 0
         print(f"Sum of best results: {min_total}, Our results: {myresult}, Loss: {myresult - min_total}")
 
     test_results.sort()
