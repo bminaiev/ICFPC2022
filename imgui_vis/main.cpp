@@ -1497,10 +1497,10 @@ void solveOpt() {
     }
     mt19937 rng(58);
     msg = "cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000);
-    for (int it = 0; it < 1000000; it++) {
-      if (GetTime() > 30.0) {
-        break;
-      }
+    for (int it = 0; it < 50000; it++) {
+      // if (GetTime() > 30.0) {
+      //   break;
+      // }
       if ((it + 1) % 2 == 0 && !corners.empty()) {
         int id = rng() % (int) corners.size();
         int i = corners[id].first;
@@ -1536,6 +1536,14 @@ void solveOpt() {
         int id = rng() % (int) corners.size();
         i = corners[id].first;
         j = corners[id].second;
+      }
+      for (int rq = 0; rq < 10; rq++) {
+        if (top[i][j] == make_pair(i, j)) break;
+        while (true) {
+            i = rng() % N;
+            j = rng() % N;
+            if (i != 0 || j != 0) break;
+        }
       }
       auto old_total = total;
       if (top[i][j] != make_pair(i, j)) {

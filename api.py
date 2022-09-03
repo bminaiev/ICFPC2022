@@ -39,6 +39,18 @@ def download(task_id, fname):
 
 
 def save_standings():
+    mytest = {}                
+    rs = requests.get(submissions_url, headers=headers)
+    js = rs.json()
+    for sub in js['submissions']:
+        if sub['status'] == 'SUCCEEDED':
+            if sub['problem_id'] not in mytest:
+                mytest[sub['problem_id']] = 10 ** 10
+
+            mytest[sub['problem_id']] = min(mytest[sub['problem_id']], sub['score'])
+
+    myresult = sum(mytest.values())
+
     rs = requests.get(scoreboard_url, headers=headers)
     with open("standings.txt", "w") as fout:
         # fout.write(rs.text)
@@ -52,7 +64,6 @@ def save_standings():
             t = team
             if t == 'RGBTeam':
                 t = '--> RGBTeam <--'
-                myresult = score
             if len(t) > 20:
                 t = t[:17] + "..."
 
@@ -62,20 +73,15 @@ def save_standings():
                 print(line)
                 fout.write(line + "\n")
 
-    mytest = {}
     mintest = {}
     for team in js['users']:
         for test in team['results']:
             tid = test['problem_id']
             if tid not in mintest:
                 mintest[tid] = 10 ** 9
-                mytest[tid] = 10 ** 9
             if test['submission_count'] == 0:
                 continue
             mintest[tid] = min(mintest[tid], test['min_cost'])
-            if team['team_name'] == 'RGBTeam':
-                mytest[tid] = test['min_cost']
-
             # if tid == 1:
             #     print(test['min_cost'])
 
@@ -84,9 +90,10 @@ def save_standings():
         min_total = 0
         for tid in sorted(mintest.keys()):
             fout.write(f"{tid} {mytest[tid]} {mintest[tid]}\n")
-            print("{0:2d} {1:8d}:our {2:8d}:best {3:8d}:loss".format(tid, mytest[tid], mintest[tid], mytest[tid] - mintest[tid]))
+            print("{0:2d} {1:8d}:our {2:8d}:best {3:8d}:{4}".format(tid, mytest[tid], mintest[tid],
+                mytest[tid] - mintest[tid], "loss" if mytest[tid] > mintest[tid] else "win"))
             min_total += mintest[tid]
-        print(f"Sum of best results: {min_total}, our loss: {myresult - min_total}")
+        print(f"Sum of best results: {min_total}, Our results: {myresult}, Loss: {myresult - min_total}")
 
 
 if __name__ == "__main__":
