@@ -854,7 +854,7 @@ void solveGena(int S, int mode) {
 }
 
 void solveOpt() {
-    solveGena(10, 0);
+//    solveGena(10, 0);
     auto init_corners = dp_corners;
     auto start_time = Time::now();
     auto GetTime = [&]() {
@@ -944,16 +944,41 @@ void solveOpt() {
         }
         diff += SQRT[sum_sq];
       }
+      while (true) {
+        bool changed = false;
+        for (int k = 0; k < 4; k++) {
+          for (int delta = -1; delta <= 1; delta += 2) {
+            paint_into[i][j][k] += delta;
+            double new_diff = 0;
+            for (auto& cell : cells[i][j]) {
+              int sum_sq = 0;
+              for (int k = 0; k < 4; k++) {
+                sum_sq += sqr(colors[cell.second][cell.first][k] - paint_into[i][j][k]);
+              }
+              new_diff += SQRT[sum_sq];
+            }
+            if (new_diff < diff) {
+              changed = true;
+              diff = new_diff;
+            } else {
+              paint_into[i][j][k] -= delta;
+            }
+          }
+        }
+        if (!changed) {
+          break;
+        }
+      }
       cost[i][j] += llround(diff * 5);
       total += cost[i][j];
     };
     Recalc(0, 0);
-    auto ForceSetTop = [&](int i, int j, pair<int, int> new_top) {
+/*    auto ForceSetTop = [&](int i, int j, pair<int, int> new_top) {
       cells[top[i][j].first][top[i][j].second].erase(iter[i][j]);
       top[i][j] = new_top;
       cells[new_top.first][new_top.second].emplace_back(i, j);
       iter[i][j] = prev(cells[new_top.first][new_top.second].end());
-    };
+    };*/
     auto ForceRecalcTop = [&](int i, int j) {
       assert(i > 0 || j > 0);
       auto new_top = (i == 0 ? top[i][j - 1] : (j == 0 ? top[i - 1][j] : Choose(top[i - 1][j], top[i][j - 1])));
@@ -1053,11 +1078,13 @@ void solveOpt() {
       total -= cost[i][j];
       cost[i][j] = 0;
     };
-    for (auto& p : init_corners) {
-      if (p.first > 0 || p.second > 0) {
-        AddCorner(p.first, p.second, -1);
+    cerr << "total = " << total << endl;
+    for (auto& block : coloredBlocks) {
+      if ((block.r1 > 0 || block.c1 > 0) && top[block.c1][block.r1] != make_pair(block.c1, block.r1)) {
+        AddCorner(block.c1, block.r1, (int) corners.size());
       }
     }
+    cerr << "total = " << total << endl;
 //    for (int i = 0; i < N; i += 40) for (int j = 0; j < N; j += 40) if (i > 0 || j > 0) AddCorner(i, j);
     for (int it = 0; it < 1000000; it++) {
       if (GetTime() > optSeconds || !optRunning) {
