@@ -5,6 +5,8 @@ image_dir = "images/"
 inputs_dir = "inputs/"
 jsons_dir = "initial/"
 for f in sorted(os.listdir(image_dir), key=lambda s: int(s[:s.find('.')])):
+    if 'initial' in f:
+        continue
     fname = image_dir + f
     print(fname + "...")
     img = Image.open(fname)
