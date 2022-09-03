@@ -937,6 +937,28 @@ void solveOpt() {
           paint_into[i][j][k] = (2 * paint_into[i][j][k] + area) / (2 * area);
         }
       }
+      for (int rep = 0; rep < 5; rep++) {
+        array<double, 4> aux = {0, 0, 0, 0};
+        double sum_coeff = 0;
+        for (auto& cell : cells[i][j]) {
+          int sum_sq = 0;
+          for (int k = 0; k < 4; k++) {
+            sum_sq += sqr(colors[cell.second][cell.first][k] - paint_into[i][j][k]);
+          }
+          double coeff = 1.0 / max(1.0, SQRT[sum_sq]);
+          sum_coeff += coeff;
+          for (int k = 0; k < 4; k++) {
+            aux[k] += colors[cell.second][cell.first][k] * coeff;
+          }
+        }
+        auto old = paint_into[i][j];
+        for (int k = 0; k < 4; k++) {
+          paint_into[i][j][k] = llround(aux[k] / sum_coeff);
+        }
+        if (paint_into[i][j] == old) {
+          break;
+        }
+      }
       cost[i][j] = base_cost[i][j];
       double diff = 0;
       for (auto& cell : cells[i][j]) {
