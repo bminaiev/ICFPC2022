@@ -18,7 +18,7 @@ for f in sorted(os.listdir(image_dir), key=lambda s: int(s[:s.find('.')])):
         fout.write(f"{h} {w}\n")
         for y in range(h):
             for x in range(w):
-                fout.write(" ".join(map(str, img.getpixel((x, y)))) + " ")
+                fout.write(" ".join(map(str, img.getpixel((x, h - 1 - y)))) + " ")
             fout.write("\n")
 
         fout.write(f"{len(js['blocks'])}\n")

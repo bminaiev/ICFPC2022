@@ -29,11 +29,11 @@ struct Instruction {
         if (type == tColor) {
             sprintf(buf, "color [%s] [%d, %d, %d, %d]", id.c_str(), color[0], color[1], color[2], color[3]);
         } else if (type == tSplitPoint) {
-            sprintf(buf, "cut [%s] [%d, %d]", id.c_str(), x, N - y);
+            sprintf(buf, "cut [%s] [%d, %d]", id.c_str(), x, y);
         } else if (type == tSplitX) {
             sprintf(buf, "cut [%s] [X] [%d]", id.c_str(), x);
         } else if (type == tSplitY) {
-            sprintf(buf, "cut [%s] [Y] [%d]", id.c_str(), N - y);
+            sprintf(buf, "cut [%s] [Y] [%d]", id.c_str(), y);
         } else if (type == tMerge) {
             sprintf(buf, "merge [%s] [%s]", id.c_str(), oid.c_str());
         } else if (type == tSwap) {

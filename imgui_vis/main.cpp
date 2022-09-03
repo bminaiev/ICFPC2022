@@ -128,9 +128,9 @@ Solution loadSolution(const Input& in, const string& filepath) {
             if (token == "X") {
                 res.ins.push_back(SplitXIns(id, val));
             } else if (token == "Y") {
-                res.ins.push_back(SplitYIns(id, in.N - val));
+                res.ins.push_back(SplitYIns(id, val));
             } else {
-                res.ins.push_back(SplitPointIns(id, stoi(token), in.N - val));
+                res.ins.push_back(SplitPointIns(id, stoi(token), val));
             }
         } else if (cs.substr(0, 5) == "merge") {
             stringstream ss(cs.substr(6));
@@ -344,12 +344,14 @@ void draw() {
     };
     for (int i = 0; i < N; i++)
         for (int j = 0; j < M; j++) {
-            ImU32 color = IM_COL32(colors[i][j][0], colors[i][j][1], colors[i][j][2], colors[i][j][3]);
+            Color c = colors[N - 1 - i][j];
+            ImU32 color = IM_COL32(c[0], c[1], c[2], c[3]);
             dl->AddRectFilled(QP(j, i), QP((j + 1), (i + 1)), color);
 
             if (i < (int)painter.clr.size() && j < (int)painter.clr[i].size()) {
-                color = IM_COL32(painter.clr[i][j][0], painter.clr[i][j][1],
-                                 painter.clr[i][j][2], painter.clr[i][j][3]);
+                c = painter.clr[N - 1 - i][j];
+                color = IM_COL32(c[0], c[1],
+                                 c[2], c[3]);
                 dl->AddRectFilled(QP(j + M + 10, i), QP((j + 1 + M + 10), (i + 1)), color);
             }
         }
