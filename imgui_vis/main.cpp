@@ -202,10 +202,7 @@ void updateStandingsTimed() {
 void downloadSolution(int testId) {
     currentTestId = testId;
     apiDownload(testId);
-    Input in = readInput(inputsPath + to_string(currentTestId) + ".txt");
-    N = in.N;
-    M = in.M;
-    colors = in.colors;
+    Input in = readInputAndStoreAsGlobal(inputsPath + to_string(currentTestId) + ".txt");
     auto [sol, _] = loadSolution(in, solutionsPath + to_string(currentTestId) + ".txt");
     postprocess(sol);
     cerr << "downloaded and loaded sol with score " << sol.score << endl;
