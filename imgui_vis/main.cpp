@@ -1368,17 +1368,13 @@ void solveOpt() {
         base_cost[i][j] = 1000 * PaintCost(N - i, N - j);
       }
     }
+    auto Priority = [&](pair<int, int> x) {
+      return make_pair(x.first + x.second, x);
+    };
     auto Choose = [&](pair<int, int> x, pair<int, int> y) {
-      if (x.first + x.second > y.first + y.second) {
-        return x;
-      }
-      if (x.first + x.second < y.first + y.second) {
-        return y;
-      }
-      if (x.first < y.first) {
-        return x;
-      }
-      return y;
+      auto px = Priority(x);
+      auto py = Priority(y);
+      return (px > py ? x : y);
     };
     vector<vector<int>> cost(N, vector<int>(N, 0));
     vector<vector<Color>> paint_into(N, vector<Color>(N));
@@ -1509,26 +1505,37 @@ void solveOpt() {
         int id = rng() % (int) corners.size();
         int i = corners[id].first;
         int j = corners[id].second;
-        int ni = i - 1 + rng() % 3;
-        int nj = j - 1 + rng() % 3;
-        if (ni < 0 || nj < 0 || ni >= N || nj >= N || top[ni][nj] == make_pair(ni, nj) || (ni == 0 && nj == 0)) {
-          continue;
-        }
-        auto old_total = total;
-        RemoveCorner(i, j);
-        AddCorner(ni, nj);
-        if (total <= old_total) {
-          msg = "it = " + to_string(it) + ", MOV, cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000) + ", time = " + to_string(GetTime()) + " s";
-        } else {
-          RemoveCorner(ni, nj);
-          AddCorner(i, j);
+        while (true) {
+          int ni = i - 1 + rng() % 3;
+          int nj = j - 1 + rng() % 3;
+          if (ni < 0 || nj < 0 || ni >= N || nj >= N || top[ni][nj] == make_pair(ni, nj) || (ni == 0 && nj == 0)) {
+            continue;
+          }
+          auto old_total = total;
+          RemoveCorner(i, j);
+          AddCorner(ni, nj);
+          if (total <= old_total) {
+            msg = "it = " + to_string(it) + ", MOV, cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000) + ", time = " + to_string(GetTime()) + " s";
+            i = ni;
+            j = nj;
+          } else {
+            RemoveCorner(ni, nj);
+            AddCorner(i, j);
+            break;
+          }
         }
         continue;
       }
-      int i = rng() % N;
-      int j = rng() % N;
-      if (i == 0 && j == 0) {
-        continue;
+      int i, j;
+      if (rng() % 2) {
+        do {
+          i = rng() % N;
+          j = rng() % N;
+        } while (top[i][j] == make_pair(i, j));
+      } else {
+        int id = rng() % (int) corners.size();
+        i = corners[id].first;
+        j = corners[id].second;
       }
       auto old_total = total;
       if (top[i][j] != make_pair(i, j)) {
@@ -1558,10 +1565,7 @@ void solveOpt() {
       }
     }
     sort(rects.begin(), rects.end(), [&](auto& r1, auto& r2) {
-      if (r1 == r2) {
-        return false;
-      }
-      return (Choose(r1.first, r2.first) == r2.first);
+      return Priority(r1.first) < Priority(r2.first);
     });
     auto Compare = [&](int x, int y) {
       int cand1 = llround(1.0 * (n * m) / (max(x, n - x) * y));
