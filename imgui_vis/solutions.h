@@ -733,7 +733,7 @@ void solveGena(int S, int mode) {
         }
         if (xa == 0 && ya > 0) {
           res.ins.push_back(SplitYIns(to_string(idx), ya * S));
-          res.ins.push_back(ColorIns(to_string(idx) + ".0", paint_into));
+          res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
           res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
           idx += 1;
         }
@@ -745,7 +745,7 @@ void solveGena(int S, int mode) {
         }
         if (xa > 0 && ya > 0) {                   
           res.ins.push_back(SplitPointIns(to_string(idx), xa * S, ya * S));
-          res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
+          res.ins.push_back(ColorIns(to_string(idx) + ".2", paint_into));
           if (Compare(n - xa, n - ya)) {
             res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".2"));
             res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
@@ -1184,7 +1184,7 @@ void solveOpt() {
       }
       if (xa == 0 && ya > 0) {
         res.ins.push_back(SplitYIns(to_string(idx), ya));
-        res.ins.push_back(ColorIns(to_string(idx) + ".0", paint_into));
+        res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
         res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
         idx += 1;
       }
@@ -1196,7 +1196,7 @@ void solveOpt() {
       }
       if (xa > 0 && ya > 0) {                   
         res.ins.push_back(SplitPointIns(to_string(idx), xa, ya));
-        res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
+        res.ins.push_back(ColorIns(to_string(idx) + ".2", paint_into));
         if (Compare(n - xa, n - ya)) {
           res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".2"));
           res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
