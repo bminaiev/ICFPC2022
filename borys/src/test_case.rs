@@ -20,6 +20,7 @@ impl Rect {
     }
 }
 
+#[derive(Clone)]
 pub struct Region {
     pub name: RectId,
     pub rect: Rect,

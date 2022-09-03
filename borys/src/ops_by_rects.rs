@@ -6,6 +6,7 @@ pub fn gen_ops_by_solution_rects(
     rects: &[SolutionRect],
     field_n: usize,
     field_m: usize,
+    mut cur_whole_id: usize,
 ) -> Vec<Op> {
     let mut res = vec![];
     let n = rects.len();
@@ -46,7 +47,6 @@ pub fn gen_ops_by_solution_rects(
         }
     }
     assert!(queue.len() == n);
-    let mut cur_whole_id = 0;
     for &rect_id in queue.iter() {
         let r = rects[rect_id];
         let to_color = color_corner(field_n, field_m, r.from, cur_whole_id, r.color);

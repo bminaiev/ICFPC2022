@@ -9,6 +9,7 @@ use crate::{
     color_picker::ColorPicker,
     consts::FMAX,
     interpreter::apply_ops,
+    merger::merge,
     op::Op,
     ops_by_rects::gen_ops_by_solution_rects,
     pixel_dist::{
@@ -311,7 +312,6 @@ fn gen_coords(block_size: usize, max_value: usize) -> Vec<usize> {
 
 pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool) -> SolutionRes {
     let expected = &test_case.expected;
-    assert!(test_case.regions.len() == 1);
     let color_picker = ColorPicker::new(&expected);
     let n = expected.len();
     let m = expected[0].len();
@@ -375,7 +375,12 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
 
     dbg!(rects.len());
 
-    let ops: Vec<Op> = gen_ops_by_solution_rects(&rects, n, m);
+    let merge_result = merge(&test_case);
+    let after_merge_ops_applied = apply_ops(&merge_result.ops, test_case);
+    let merge_cost = after_merge_ops_applied.only_ops_cost;
+    let rect_ops: Vec<Op> = gen_ops_by_solution_rects(&rects, n, m, merge_result.last_block_id);
+    let mut all_ops = merge_result.ops;
+    all_ops.extend(rect_ops);
     // for r in rects.iter() {
     //     dbg!(
     //         (r.to.x - r.from.x) as usize / BLOCK_SIZE,
@@ -393,19 +398,19 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
         }
     }
 
-    let ops_res = apply_ops(&ops, n, m);
-    // dbg!(ops_res.cost + get_pixel_distance(&ops_res.picture, expected));
+    let ops_res = apply_ops(&all_ops, test_case);
     for i in 0..n {
         for j in 0..m {
             assert_eq!(my_picture[i][j], ops_res.picture[i][j]);
         }
     }
 
-    let res = solution.dp[0][0][xs.len() - 1][ys.len() - 1];
-    dbg!(res);
+    let score_without_merge = solution.dp[0][0][xs.len() - 1][ys.len() - 1];
+    dbg!(score_without_merge);
+    dbg!(score_without_merge + merge_cost);
     SolutionRes {
         a: my_picture,
-        expected_score: res,
-        ops,
+        expected_score: score_without_merge + merge_cost,
+        ops: all_ops,
     }
 }

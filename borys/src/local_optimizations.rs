@@ -9,8 +9,8 @@ use algo_lib::{collections::array_2d::Array2D, misc::min_max::UpdateMinMax};
 use crate::color_corner::color_corner;
 use crate::ops_by_rects::gen_ops_by_solution_rects;
 use crate::solver::SolutionRes;
+use crate::test_case::TestCase;
 use crate::utils::p;
-use crate::Point;
 use crate::{
     color::Color,
     interpreter::apply_ops,
@@ -18,6 +18,7 @@ use crate::{
     pixel_dist::{get_pixel_distance, PIXEL_DIST_COEF},
     solver::SolutionRect,
 };
+use crate::{test_case, Point};
 
 fn color_dist(colors: &[Color], my: Color) -> f64 {
     let mut res = 0.0;
@@ -119,10 +120,12 @@ pub fn optimize_colors(
     expected: &Array2D<Color>,
     rects: &[SolutionRect],
     ops: &[Op],
+    start_whole_id: usize,
+    test_case: &TestCase,
 ) -> SolutionRes {
     let n = expected.len();
     let m = expected[0].len();
-    let final_res = apply_ops(ops, n, m);
+    let final_res = apply_ops(ops, test_case);
     let pixel_dist = get_pixel_distance(&final_res.picture, &expected);
 
     let my = gen_field_by_rects(rects, n, m);
@@ -154,8 +157,8 @@ pub fn optimize_colors(
     dbg!(final_res.only_ops_cost + new_pixel_dist);
 
     shrink_rects(&mut new_rects, n, m);
-    let new_ops = gen_ops_by_solution_rects(&new_rects, n, m);
-    let final_res2 = apply_ops(&new_ops, n, m);
+    let new_ops = gen_ops_by_solution_rects(&new_rects, n, m, start_whole_id);
+    let final_res2 = apply_ops(&new_ops, test_case);
     let pixel_dist3 = get_pixel_distance(&final_res2.picture, &expected);
     // dbg!(final_res2.only_ops_cost + pixel_dist3);
     SolutionRes {
@@ -184,6 +187,8 @@ pub fn optimize_positions(
     rects: &[SolutionRect],
     ops: &[Op],
     rnd: &mut Random,
+    start_whole_id: usize,
+    test_case: &TestCase,
 ) -> SolutionRes {
     let mut rects = rects.to_vec();
     let n = expected.len();
@@ -300,8 +305,8 @@ pub fn optimize_positions(
     dbg!(my_score);
 
     shrink_rects(&mut rects, n, m);
-    let new_ops = gen_ops_by_solution_rects(&rects, n, m);
-    let final_res2 = apply_ops(&new_ops, n, m);
+    let new_ops = gen_ops_by_solution_rects(&rects, n, m, start_whole_id);
+    let final_res2 = apply_ops(&new_ops, test_case);
     let pixel_dist3 = get_pixel_distance(&final_res2.picture, &expected);
     // dbg!(final_res2.only_ops_cost + pixel_dist3);
     let r = SolutionRes {
@@ -310,7 +315,7 @@ pub fn optimize_positions(
         expected_score: final_res2.only_ops_cost + pixel_dist3,
     };
     dbg!("after local shift optimizations", r.expected_score);
-    let after_local = optimize_colors(expected, &rects, &r.ops);
+    let after_local = optimize_colors(expected, &rects, &r.ops, start_whole_id, test_case);
     let diff = start_score - after_local.expected_score;
     dbg!(
         "after color optimizations",

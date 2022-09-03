@@ -9,8 +9,8 @@ use crate::{
     color::Color,
     consts::{COLOR_COST, LINE_CUT_COST, MERGE_COST, POINT_CUT_COST},
     op::Op,
-    rect_id::{rect_id_from_usize, rect_id_get_start, rect_id_sub_key},
-    test_case::Rect,
+    rect_id::{rect_id_from_usize, rect_id_sub_key},
+    test_case::{Rect, TestCase},
     Point,
 };
 
@@ -19,25 +19,27 @@ pub struct ApplyOpsResult {
     pub only_ops_cost: f64,
 }
 
-pub fn apply_ops(ops: &[Op], n: usize, m: usize) -> ApplyOpsResult {
+pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
+    let n = test_case.expected.len();
+    let m = test_case.expected[0].len();
+
     let canvas_size = (n as f64) * (m as f64);
     let mut a = Array2D::new(Color::default(), n, m);
-    for i in 0..n {
-        for j in 0..m {
-            for k in 0..4 {
-                a[i][j].0[k] = 255;
+    for region in test_case.regions.iter() {
+        for x in region.rect.from.x..region.rect.to.x {
+            for y in region.rect.from.y..region.rect.to.y {
+                a[x as usize][y as usize] = region.color;
             }
         }
     }
+
     let mut rects = HashMap::new();
-    let start_id = rect_id_get_start();
-    rects.insert(
-        start_id,
-        Rect::new(Point::ZERO, Point::new(n as i32, m as i32)),
-    );
+    for region in test_case.regions.iter() {
+        rects.insert(region.name.clone(), region.rect);
+    }
     let mut cost = 0.0;
 
-    let mut last_rect_id = 0;
+    let mut last_rect_id = test_case.regions.len() - 1;
     for op in ops.iter() {
         match op {
             Op::CutPoint(id, p) => {

@@ -18,6 +18,7 @@ mod color_picker;
 mod consts;
 mod interpreter;
 mod local_optimizations;
+mod merger;
 mod op;
 mod ops_by_rects;
 mod pixel_dist;
@@ -36,16 +37,16 @@ fn solve_case(test_id: usize, block_size: usize, use_third_layer: bool) {
     save_solution(test_id, &solution);
 }
 
-fn show_case(test_id: usize) {
-    let expected = read_case(test_id).expected;
-    let n = expected.len();
-    let m = expected[0].len();
-    let submit = read_submit(&format!("../outputs/{}.isl", test_id));
-    let op_res = apply_ops(&submit, n, m);
-    let dist = get_pixel_distance(&op_res.picture, &expected);
-    dbg!(dist + op_res.only_ops_cost);
-    save_image(&op_res.picture, &format!("../images/{}.res.png", test_id))
-}
+// fn show_case(test_id: usize) {
+//     let expected = read_case(test_id).expected;
+//     let n = expected.len();
+//     let m = expected[0].len();
+//     let submit = read_submit(&format!("../outputs/{}.isl", test_id));
+//     let op_res = apply_ops(&submit, n, m);
+//     let dist = get_pixel_distance(&op_res.picture, &expected);
+//     dbg!(dist + op_res.only_ops_cost);
+//     save_image(&op_res.picture, &format!("../images/{}.res.png", test_id))
+// }
 
 fn solve_all() {
     for &block_size in [50, 20, 15, 10, 8, 7, 6, 5].iter() {
@@ -69,24 +70,33 @@ fn local_optimize(test_id: usize) {
     let start = Instant::now();
     let test_case = read_case(test_id);
     let ops = read_submit(&format!("../outputs/{}.isl", test_id));
-    assert!(test_case.regions.len() == 1);
+    let start_whole_id = 0;
     let expected = &test_case.expected;
     let rects = gen_rects_by_ops(&ops, expected.len(), expected[0].len());
-    let new_sol = optimize_positions(&expected, &rects, &ops, &mut rnd);
+    let new_sol = optimize_positions(
+        &expected,
+        &rects,
+        &ops,
+        &mut rnd,
+        start_whole_id,
+        &test_case,
+    );
     save_solution(test_id, &new_sol);
     dbg!(start.elapsed());
 }
 
 fn main() {
     // solve_all();
-    const TEST_ID: usize = 25;
-    loop {
-        dbg!("NEXT ITERATION!!!");
-        for test_id in 25..=25 {
-            dbg!(test_id);
-            local_optimize(test_id);
-        }
+    const TEST_ID: usize = 27;
+    // loop {
+    //     dbg!("NEXT ITERATION!!!");
+    for test_id in TEST_ID..=30 {
+        dbg!(test_id);
+        // local_optimize(test_id);
+        // solve_fast(test_id);
+        solve_case(test_id, 6, true);
     }
+    // }
     // let start = Instant::now();
     // solve_case(4);
     // dbg!(start.elapsed());
