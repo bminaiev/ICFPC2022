@@ -1,10 +1,14 @@
 use std::cmp::min;
 use std::time::Instant;
 
-use algo_lib::dbg;
+use algo_lib::io::output::output;
+use algo_lib::io::output::set_global_output_to_stdout;
 use algo_lib::iters::shifts::SHIFTS_8;
 use algo_lib::misc::rand::Random;
+use algo_lib::misc::simulated_annealing::SearchFor;
+use algo_lib::misc::simulated_annealing::SimulatedAnnealing;
 use algo_lib::{collections::array_2d::Array2D, misc::min_max::UpdateMinMax};
+use algo_lib::{dbg, out, out_line};
 
 use crate::color_corner::color_corner;
 use crate::interpreter::gen_start_field;
@@ -241,11 +245,14 @@ pub fn optimize_positions(
     let start_score = my_score;
 
     let mut not_changed_it = 0;
-    let start = Instant::now();
-    loop {
-        if start.elapsed().as_secs_f64() > 10.0 {
-            break;
-        }
+    // let start = Instant::now();
+    let mut rnd = Random::new_time_seed();
+    let start_temp = rnd.gen_double() * 20.0;
+    let mut sa = SimulatedAnnealing::new(20.0, SearchFor::MinimumScore, start_temp, 0.01, my_score);
+    while sa.should_continue() {
+        // if start.elapsed().as_secs_f64() > 10.0 {
+        //     break;
+        // }
         not_changed_it += 1;
         if not_changed_it == 1000 {
             break;
@@ -256,8 +263,8 @@ pub fn optimize_positions(
             let r = rects[rect_id];
             rects.remove(rect_id);
             let new_score = score_by_rects(&rects, test_case, merge_cost);
-            if new_score < my_score {
-                dbg!("new best score! (by removing)", my_score, new_score);
+            if sa.should_go(new_score) {
+                // dbg!("new best score! (by removing)", my_score, new_score);
                 my_score = new_score;
                 not_changed_it = 0;
             } else {
@@ -272,8 +279,8 @@ pub fn optimize_positions(
             if is_point_inside(new_from, n, m) {
                 rects[rect_id].from = new_from;
                 let new_score = score_by_rects(&rects, test_case, merge_cost);
-                if new_score < my_score {
-                    dbg!("new best score!", my_score, new_score);
+                if sa.should_go(new_score) {
+                    // dbg!("new best score!", my_score, new_score);
                     my_score = new_score;
                     not_changed_it = 0;
                 } else {
@@ -312,8 +319,8 @@ pub fn optimize_positions(
                     find_best_color(&covered_pixels, estimate_best_color(&covered_pixels));
                 rects[idx].color = best_color;
                 let new_score = score_by_rects(&rects, test_case, merge_cost);
-                if new_score < my_score {
-                    dbg!("new best score! (by adding new!!!)", my_score, new_score);
+                if sa.should_go(new_score) {
+                    // dbg!("new best score! (by adding new!!!)", my_score, new_score);
                     my_score = new_score;
                     not_changed_it = 0;
                 } else {
@@ -326,12 +333,12 @@ pub fn optimize_positions(
                 let pos = rnd.gen(0..rects.len() - 1);
                 rects.swap(pos, pos + 1);
                 let new_score = score_by_rects(&rects, test_case, merge_cost);
-                if new_score < my_score {
-                    dbg!(
-                        "new best score! (by swapping rects!!!)",
-                        my_score,
-                        new_score
-                    );
+                if sa.should_go(new_score) {
+                    // dbg!(
+                    //     "new best score! (by swapping rects!!!)",
+                    //     my_score,
+                    //     new_score
+                    // );
                     my_score = new_score;
                     not_changed_it = 0;
                 } else {
