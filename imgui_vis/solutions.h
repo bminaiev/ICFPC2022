@@ -1111,12 +1111,29 @@ void solveOpt() {
     }
     cerr << "total = " << res.score + total << endl;
 //    for (int i = 0; i < N; i += 40) for (int j = 0; j < N; j += 40) if (i > 0 || j > 0) AddCorner(i, j);
-    #define wlog(operationType) msg.clear() << "it " << it << " [" << operationType << "] cnt: " << corners.size() << ", total: " << res.score + total / 1000 << " (" << res.score << " merge), time: " << GetTime() << + "s\n"
+    #define wlog(operationType) msg.clear() << "it " << it << " [" << operationType << "] cnt: " << corners.size() << ", total: " << res.score + total / 1000 << " (" << res.score << " merge), best: " << res.score + best_total / 1000 << ", time: " << GetTime() << + "s\n"
     #define setlocal localTries = 100; localI = i; localJ = j;
     int localTries = 0;
     int localI = -1, localJ = -1;
     int qit = 0;
+    vector<pair<pair<int, int>, Color>> rects;
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        if (top[i][j] == make_pair(i, j)) {
+          rects.emplace_back(make_pair(i, j), paint_into[i][j]);
+        }
+      }
+    }
+    int best_total = total;
     for (int it = 0; it < 100000000; it++) {
+      if (total < best_total) {
+        best_total = total;
+        rects.clear();
+        rects.emplace_back(make_pair(0, 0), paint_into[0][0]);
+        for (auto& p : corners) {
+          rects.emplace_back(p, paint_into[p.first][p.second]);
+        }
+      }
       if (GetTime() > optSeconds || !optRunning) {
         break;
       }
@@ -1238,17 +1255,9 @@ void solveOpt() {
         }
       }
     }
-    vector<pair<pair<int, int>, Color>> rects;
-    for (int i = 0; i < N; i++) {
-      for (int j = 0; j < N; j++) {
-        if (top[i][j] == make_pair(i, j)) {
-          rects.emplace_back(make_pair(i, j), paint_into[i][j]);
-        }
-      }
-    }
-    sort(rects.begin(), rects.end(), [&](auto& r1, auto& r2) {
+/*    sort(rects.begin(), rects.end(), [&](auto& r1, auto& r2) {
       return Priority(r1.first) < Priority(r2.first);
-    });
+    });*/
     auto Compare = [&](int x, int y) {
       int cand1 = llround(1.0 * (n * m) / (max(x, n - x) * y));
       cand1    += llround(1.0 * (n * m) / (max(x, n - x) * (m - y)));
@@ -1294,7 +1303,7 @@ void solveOpt() {
       }
     }
 
-    res.score += round(total * 0.001);
+    res.score += round(best_total * 0.001);
     msg.clear() << "Duration: " << GetTime() << "s\n";
     postprocess(res);
 }
