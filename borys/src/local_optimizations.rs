@@ -85,6 +85,9 @@ fn shrink_rects(rects: &mut Vec<SolutionRect>, n: usize, m: usize) {
     }
     for x in 0..n {
         for y in 0..m {
+            if colored_by_rects[x][y] == std::usize::MAX {
+                continue;
+            }
             let rect = &mut rects[colored_by_rects[x][y]];
             rect.to.x.update_max(x as i32 + 1);
             rect.to.y.update_max(y as i32 + 1);
@@ -113,6 +116,9 @@ pub fn optimize_colors(
     let mut pixels_by_rect = vec![vec![]; rects.len()];
     for x in 0..n {
         for y in 0..m {
+            if colored_by_rect[x][y] == std::usize::MAX {
+                continue;
+            }
             pixels_by_rect[colored_by_rect[x][y]].push(expected[x][y]);
         }
     }
@@ -173,23 +179,37 @@ pub fn optimize_positions(
             break;
         }
         not_changed_it += 1;
-        if not_changed_it == 100 {
+        if not_changed_it == 200 {
             break;
         }
         let rect_id = rnd.gen(0..rects.len());
-        let shift = SHIFTS_4[rnd.gen(0..4)];
-        let prev_from = rects[rect_id].from;
-        let new_from = rects[rect_id].from.apply_shift(&shift);
-
-        if is_point_inside(new_from, n, m) {
-            rects[rect_id].from = new_from;
+        if rnd.gen_bool() {
+            let r = rects[rect_id];
+            rects.remove(rect_id);
             let new_score = score_by_rects(&rects, n, m, expected);
             if new_score < my_score {
-                dbg!("new best score!", my_score, new_score);
+                dbg!("new best score! (by removing)", my_score, new_score);
                 my_score = new_score;
                 not_changed_it = 0;
             } else {
-                rects[rect_id].from = prev_from;
+                rects.insert(rect_id, r);
+                assert!(score_by_rects(&rects, n, m, expected) == my_score);
+            }
+        } else {
+            let shift = SHIFTS_4[rnd.gen(0..4)];
+            let prev_from = rects[rect_id].from;
+            let new_from = rects[rect_id].from.apply_shift(&shift);
+
+            if is_point_inside(new_from, n, m) {
+                rects[rect_id].from = new_from;
+                let new_score = score_by_rects(&rects, n, m, expected);
+                if new_score < my_score {
+                    dbg!("new best score!", my_score, new_score);
+                    my_score = new_score;
+                    not_changed_it = 0;
+                } else {
+                    rects[rect_id].from = prev_from;
+                }
             }
         }
     }

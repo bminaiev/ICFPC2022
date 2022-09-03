@@ -75,7 +75,7 @@ fn local_optimize(test_id: usize) {
 
 fn main() {
     // solve_all();
-    const TEST_ID: usize = 25;
+    const TEST_ID: usize = 1;
     for test_id in TEST_ID..=TEST_ID {
         dbg!(test_id);
         local_optimize(test_id);
