@@ -1,14 +1,16 @@
 use algo_lib::collections::array_2d::Array2D;
 
-use crate::{color_corner::color_corner, op::Op, solver::SolutionRect, utils::p, Point};
+use crate::{
+    color_corner::color_corner, merger::MergeResult, op::Op, solver::SolutionRect, utils::p, Point,
+};
 
 pub fn gen_ops_by_solution_rects(
     rects: &[SolutionRect],
     field_n: usize,
     field_m: usize,
-    mut cur_whole_id: usize,
+    merge_result: &MergeResult,
 ) -> Vec<Op> {
-    let mut res = vec![];
+    let mut res = merge_result.ops.clone();
     let n = rects.len();
     let mut ok_after = Array2D::new(true, n, n);
     for i in 0..n {
@@ -47,6 +49,7 @@ pub fn gen_ops_by_solution_rects(
         }
     }
     assert!(queue.len() == n);
+    let mut cur_whole_id = merge_result.last_block_id;
     for &rect_id in queue.iter() {
         let r = rects[rect_id];
         let to_color = color_corner(field_n, field_m, r.from, cur_whole_id, r.color);

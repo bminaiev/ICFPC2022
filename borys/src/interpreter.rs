@@ -19,11 +19,9 @@ pub struct ApplyOpsResult {
     pub only_ops_cost: f64,
 }
 
-pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
+pub fn gen_start_field(test_case: &TestCase) -> Array2D<Color> {
     let n = test_case.expected.len();
     let m = test_case.expected[0].len();
-
-    let canvas_size = (n as f64) * (m as f64);
     let mut a = Array2D::new(Color::default(), n, m);
     for region in test_case.regions.iter() {
         for x in region.rect.from.x..region.rect.to.x {
@@ -32,6 +30,15 @@ pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
             }
         }
     }
+    a
+}
+
+pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
+    let n = test_case.expected.len();
+    let m = test_case.expected[0].len();
+
+    let canvas_size = (n as f64) * (m as f64);
+    let mut a = gen_start_field(test_case);
 
     let mut rects = HashMap::new();
     for region in test_case.regions.iter() {

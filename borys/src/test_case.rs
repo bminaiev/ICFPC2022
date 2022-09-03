@@ -30,3 +30,9 @@ pub struct TestCase {
     pub expected: Array2D<Color>,
     pub regions: Vec<Region>,
 }
+
+impl TestCase {
+    pub fn get_size(&self) -> (usize, usize) {
+        (self.expected.len(), self.expected[0].len())
+    }
+}

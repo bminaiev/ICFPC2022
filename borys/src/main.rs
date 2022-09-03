@@ -73,28 +73,21 @@ fn local_optimize(test_id: usize) {
     let start_whole_id = 0;
     let expected = &test_case.expected;
     let rects = gen_rects_by_ops(&ops, expected.len(), expected[0].len());
-    let new_sol = optimize_positions(
-        &expected,
-        &rects,
-        &ops,
-        &mut rnd,
-        start_whole_id,
-        &test_case,
-    );
+    let new_sol = optimize_positions(&expected, &rects, &mut rnd, start_whole_id, &test_case);
     save_solution(test_id, &new_sol);
     dbg!(start.elapsed());
 }
 
 fn main() {
     // solve_all();
-    const TEST_ID: usize = 27;
+    const TEST_ID: usize = 8;
     // loop {
     //     dbg!("NEXT ITERATION!!!");
-    for test_id in TEST_ID..=30 {
+    for test_id in TEST_ID..=TEST_ID {
         dbg!(test_id);
-        // local_optimize(test_id);
+        local_optimize(test_id);
         // solve_fast(test_id);
-        solve_case(test_id, 6, true);
+        // solve_case(test_id, 6, true);
     }
     // }
     // let start = Instant::now();

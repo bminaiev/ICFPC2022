@@ -378,9 +378,9 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
     let merge_result = merge(&test_case);
     let after_merge_ops_applied = apply_ops(&merge_result.ops, test_case);
     let merge_cost = after_merge_ops_applied.only_ops_cost;
-    let rect_ops: Vec<Op> = gen_ops_by_solution_rects(&rects, n, m, merge_result.last_block_id);
-    let mut all_ops = merge_result.ops;
-    all_ops.extend(rect_ops);
+    let all_ops: Vec<Op> = gen_ops_by_solution_rects(&rects, n, m, &merge_result);
+    // let mut all_ops = merge_result.ops;
+    // all_ops.extend(rect_ops);
     // for r in rects.iter() {
     //     dbg!(
     //         (r.to.x - r.from.x) as usize / BLOCK_SIZE,
