@@ -642,7 +642,7 @@ void fileWindow() {
                 ImGui::TableNextColumn();
                 ImGui::Text("%d", myScores[tests[idx].first]);                
                 ImGui::SameLine(55);
-                bName = "Submit " + to_string(tid);
+                bName = "Sub " + to_string(tid);
                 if (ImGui::Button(bName.c_str())) {
                     apiSubmit(tests[idx].first);
                 }
@@ -652,7 +652,7 @@ void fileWindow() {
                     ImGui::TableNextColumn();
                     ImGui::Text("%d", get<1>(testResults[idx]));
                     ImGui::SameLine(55);
-                    bName = "Download " + to_string(tid);
+                    bName = "DL " + to_string(tid);
                     if (ImGui::Button(bName.c_str())) {
                         downloadSolution(tests[idx].first);
                     }
