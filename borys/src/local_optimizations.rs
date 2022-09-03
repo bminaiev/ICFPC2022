@@ -246,9 +246,18 @@ pub fn optimize_positions(
 
     let mut not_changed_it = 0;
     // let start = Instant::now();
-    let mut rnd = Random::new_time_seed();
-    let start_temp = rnd.gen_double() * 20.0;
-    let mut sa = SimulatedAnnealing::new(20.0, SearchFor::MinimumScore, start_temp, 0.01, my_score);
+    let mut start_temp = rnd.gen_double() * 20.0;
+    let finish_temp = 0.01;
+    if start_temp <= finish_temp {
+        start_temp = finish_temp * 2.0;
+    }
+    let mut sa = SimulatedAnnealing::new(
+        20.0,
+        SearchFor::MinimumScore,
+        start_temp,
+        finish_temp,
+        my_score,
+    );
     while sa.should_continue() {
         // if start.elapsed().as_secs_f64() > 10.0 {
         //     break;
