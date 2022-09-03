@@ -12,7 +12,6 @@ constexpr int tSwap = 6;
 int N, M;
 vector<vector<Color>> colors;
 bool running;
-int S = 10;
 
 struct Input {
     int N, M;
@@ -1009,7 +1008,7 @@ void solveOpt() {
 //    for (int i = 0; i < N; i += 40) for (int j = 0; j < N; j += 40) if (i > 0 || j > 0) AddCorner(i, j);
     msg = "cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000);
     for (int it = 0; it < 1000000; it++) {
-      if (GetTime() > 60.0 * 7.0 * 0.01) {
+      if (GetTime() > optSeconds) {
         break;
       }
       if (rng() % 2 == 0 && corners.size() >= 2) {

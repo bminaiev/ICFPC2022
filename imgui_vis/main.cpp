@@ -371,33 +371,36 @@ void optsWindow() {
     static bool runInMainThread = false;
     if (ImGui::Begin("Solution")) {
         ImGui::Text("Current test: %d", currentTestId);
-        ImGui::DragInt("DP Step", &S, 1, 2, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
-        ImGui::DragInt("Direction", &mode, 1, 0, 3, "D=%d", ImGuiSliderFlags_AlwaysClamp);
-        ImGui::Checkbox("Run in main thread", &runInMainThread);
+        if (currentTestId >= 1) {
+            ImGui::DragInt("DP Step", &S, 1, 2, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::DragInt("Direction", &mode, 1, 0, 3, "D=%d", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::Checkbox("Run in main thread", &runInMainThread);
 
-        if (ImGui::Button("Solve Gena")) {
-            if (runInMainThread) {
-                cerr << "Run in main thread!\n";
-                solveGena(S, mode);
-            } else {
-                cerr << "Spawn thread!\n";
-                thread solveThread(solveGena, S, mode);
-                solveThread.detach();
+            if (ImGui::Button("Solve Gena")) {
+                if (runInMainThread) {
+                    cerr << "Run in main thread!\n";
+                    solveGena(S, mode);
+                } else {
+                    cerr << "Spawn thread!\n";
+                    thread solveThread(solveGena, S, mode);
+                    solveThread.detach();
+                }
             }
-        }
-        ImGui::SameLine(100);
-        if (ImGui::Button("Solve Opt")) {
-            if (runInMainThread) {
-                cerr << "Run in main thread!\n";
-                solveOpt();
-            } else {
-                cerr << "Spawn thread!\n";
-                thread solveThread(solveOpt);
-                solveThread.detach();
-            }
-        }
+            ImGui::SameLine(100);
+            if (ImGui::Button("Solve Opt")) {
+                if (runInMainThread) {
+                    cerr << "Run in main thread!\n";
+                    solveOpt();
+                } else {
+                    cerr << "Spawn thread!\n";
+                    thread solveThread(solveOpt);
+                    solveThread.detach();
+                }
+            }        
+            ImGui::InputInt("TL, sec", &optSeconds, 1, 10);
 
-        ImGui::Text("%s\n%s", msg.c_str(), requestResult.c_str());
+            ImGui::Text("%s\n%s", msg.c_str(), requestResult.c_str());
+        }
     }
     ImGui::End();
 }
