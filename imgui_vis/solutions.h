@@ -1117,12 +1117,9 @@ void solveOpt() {
     int localI = -1, localJ = -1;
     int qit = 0;
     vector<pair<pair<int, int>, Color>> rects;
-    for (int i = 0; i < N; i++) {
-      for (int j = 0; j < N; j++) {
-        if (top[i][j] == make_pair(i, j)) {
-          rects.emplace_back(make_pair(i, j), paint_into[i][j]);
-        }
-      }
+    rects.emplace_back(make_pair(0, 0), paint_into[0][0]);
+    for (auto& p : corners) {
+      rects.emplace_back(p, paint_into[p.first][p.second]);
     }
     int best_total = total;
     for (int it = 0; it < 100000000; it++) {
