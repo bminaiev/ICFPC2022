@@ -1114,15 +1114,16 @@ void solveOpt() {
     #define wlog(operationType) msg.clear() << "it " << it << " [" << operationType << "] cnt: " << corners.size() << ", total: " << res.score + total / 1000 << " (" << res.score << " merge), time: " << GetTime() << + "s\n"
     #define setlocal localTries = 100; localI = i; localJ = j;
     int localTries = 0;
-    int localI, localJ;
-    for (int it = 0; it < 1000000; it++) {
+    int localI = -1, localJ = -1;
+    int qit = 0;
+    for (int it = 0; it < 100000000; it++) {
       if (GetTime() > optSeconds || !optRunning) {
         break;
       }
       if (it % 100 == 0) {
         T = T * 0.9999;
       }
-      if (rng() % 2 == 0 && corners.size() >= 2) {
+      if (corners.size() >= 2) {
         int id = rng() % (int) corners.size();
         int i = corners[id].first;
         int j = corners[id].second;
@@ -1142,9 +1143,8 @@ void solveOpt() {
           RemoveCorner(i, j);
           AddCorner(i, j, id);
         }
-        continue;
       }
-      if ((it + 1) % 2 == 0 && !corners.empty()) {
+      if (!corners.empty()) {
         int id = rng() % (int) corners.size();
         int i = corners[id].first;
         int j = corners[id].second;
@@ -1198,15 +1198,16 @@ void solveOpt() {
             break;
           }
         }
-        continue;
       }
+
       int i, j;
-      if (rng() % 2) {
+      { // ADD
         do {
-          i = rng() % N;
-          j = rng() % N;
-        } while (top[i][j] == make_pair(i, j) || (localTries > 0 && (abs(i - localI) > 20 || abs(j - localJ) > 20)));
-        if (localTries > 0) localTries--;
+          qit++;
+          i = qit % (N * N) / N;
+          j = qit % N;
+        } while (top[i][j] == make_pair(i, j)); // || (localTries > 0 && (abs(i - localI) > 20 || abs(j - localJ) > 20)));
+        // if (localTries > 0) localTries--;
         auto old_total = total;
         AddCorner(i, j, -1);
         if (total <= old_total || exp((old_total - total) / 10000.0 / T) > (rng() % 1000) / 1000.0) {
@@ -1215,7 +1216,9 @@ void solveOpt() {
         } else {
           RemoveCorner(i, j);
         }
-      } else {
+      }
+
+      { // REM
         int id = rng() % (int) corners.size();
         i = corners[id].first;
         j = corners[id].second;
