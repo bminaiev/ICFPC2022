@@ -3,7 +3,7 @@ import os
 
 image_dir = "images/"
 inputs_dir = "inputs/"
-for f in os.listdir(image_dir):
+for f in sorted(os.listdir(image_dir)):
     fname = image_dir + f
     print(fname + "...")
     img = Image.open(fname)
