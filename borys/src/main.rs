@@ -1,19 +1,29 @@
-use std::{collections::HashMap, ops::Range, path::Path};
+use std::{
+    cmp::{max, min},
+    collections::HashMap,
+    fmt::Debug,
+    ops::Range,
+    path::Path,
+    time::Instant,
+};
 
 use algo_lib::{
     collections::{array_2d::Array2D, last_exn::LastExn},
     dbg,
     geometry::point::PointT,
-    io::input::Input,
+    io::{
+        input::Input,
+        output::{output, set_global_output_to_file},
+    },
     misc::{
         float_min_max::{fmax, fmin},
         rand::Random,
-        rec_function::{Callable4, RecursiveFunction4},
     },
+    out, out_line,
     strings::utils::vec2str,
 };
 
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 struct Color([u8; 4]);
 
 impl Color {
@@ -67,15 +77,87 @@ fn get_pixel_distance_range_one_color(
     res * 0.005
 }
 
+enum EstimateResult {
+    RealResult(f64),
+    Estimation(f64),
+}
+
+fn estimate_pixel_distance_range_one_color(
+    color: Color,
+    expected: &Array2D<Color>,
+    xs: Range<usize>,
+    ys: Range<usize>,
+    rnd: &mut Random,
+) -> EstimateResult {
+    let area = (xs.end - xs.start) * (ys.end - ys.start);
+    if area < 50 {
+        return EstimateResult::RealResult(get_pixel_distance_range_one_color(
+            color, expected, xs, ys,
+        ));
+    }
+    let mut res = 0.0;
+    const MAX_TRIES: usize = 20;
+    for _ in 0..MAX_TRIES {
+        let x = rnd.gen(xs.clone());
+        let y = rnd.gen(ys.clone());
+        res += color.dist(&expected[x][y]);
+    }
+    EstimateResult::Estimation(res * (area as f64) / (MAX_TRIES as f64) * 0.005)
+}
+
 type RectId = Vec<u8>;
 type Point = PointT<i32>;
 
-#[derive(Clone, Debug)]
+fn rect_id_from_usize(x: usize) -> RectId {
+    x.to_string().into_bytes()
+}
+
+fn rect_id_sub_key(id: &RectId, sub_id: usize) -> Vec<u8> {
+    let mut res = id.clone();
+    res.push(b'.');
+    res.push(sub_id as u8 + b'0');
+    res
+}
+
+#[derive(Clone)]
 enum Op {
     CutPoint(RectId, Point),
     Color(RectId, Color),
     CutY(RectId, i32),
     CutX(RectId, i32),
+    Merge(RectId, RectId),
+}
+
+impl Debug for Op {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CutPoint(arg0, arg1) => f.write_fmt(format_args!(
+                "cut [{}] [{}, {}]",
+                vec2str(&arg0),
+                arg1.x,
+                arg1.y
+            )),
+            Self::Color(arg0, arg1) => f.write_fmt(format_args!(
+                "color [{}] [{}, {}, {}, {}]",
+                vec2str(&arg0),
+                arg1.0[0],
+                arg1.0[1],
+                arg1.0[2],
+                arg1.0[3]
+            )),
+            Self::CutY(arg0, arg1) => {
+                f.write_fmt(format_args!("cut [{}] [Y] [{}]", vec2str(&arg0), arg1))
+            }
+            Self::CutX(arg0, arg1) => {
+                f.write_fmt(format_args!("cut [{}] [X] [{}]", vec2str(&arg0), arg1))
+            }
+            Self::Merge(arg0, arg1) => f.write_fmt(format_args!(
+                "merge [{}] [{}]",
+                vec2str(&arg0),
+                vec2str(&arg1)
+            )),
+        }
+    }
 }
 
 fn remove_prefix(s: Vec<u8>, c: char) -> Vec<u8> {
@@ -201,13 +283,7 @@ fn apply_ops(ops: &[Op], n: usize, m: usize) -> OpResult {
     );
     let mut cost = 0.0;
 
-    let gen_key = |id: &Vec<u8>, sub_id: usize| -> Vec<u8> {
-        let mut res = id.clone();
-        res.push(b'.');
-        res.push(sub_id as u8 + b'0');
-        res
-    };
-
+    let mut last_rect_id = 0;
     for op in ops.iter() {
         match op {
             Op::CutPoint(id, p) => {
@@ -220,19 +296,19 @@ fn apply_ops(ops: &[Op], n: usize, m: usize) -> OpResult {
                 let y3 = r.to.y;
 
                 rects.insert(
-                    gen_key(id, 0),
+                    rect_id_sub_key(id, 0),
                     Rect::new(Point::new(x1, y1), Point::new(x2, y2)),
                 );
                 rects.insert(
-                    gen_key(id, 1),
+                    rect_id_sub_key(id, 1),
                     Rect::new(Point::new(x2, y1), Point::new(x3, y2)),
                 );
                 rects.insert(
-                    gen_key(id, 2),
+                    rect_id_sub_key(id, 2),
                     Rect::new(Point::new(x2, y2), Point::new(x3, y3)),
                 );
                 rects.insert(
-                    gen_key(id, 3),
+                    rect_id_sub_key(id, 3),
                     Rect::new(Point::new(x1, y2), Point::new(x2, y3)),
                 );
                 rects.remove(id);
@@ -250,11 +326,11 @@ fn apply_ops(ops: &[Op], n: usize, m: usize) -> OpResult {
             Op::CutY(id, split_y) => {
                 let r = *rects.get(id).unwrap();
                 rects.insert(
-                    gen_key(id, 0),
+                    rect_id_sub_key(id, 0),
                     Rect::new(r.from, Point::new(r.to.x, *split_y)),
                 );
                 rects.insert(
-                    gen_key(id, 1),
+                    rect_id_sub_key(id, 1),
                     Rect::new(Point::new(r.from.x, *split_y), r.to),
                 );
                 rects.remove(id);
@@ -263,19 +339,31 @@ fn apply_ops(ops: &[Op], n: usize, m: usize) -> OpResult {
             Op::CutX(id, split_x) => {
                 let r = *rects.get(id).unwrap();
                 rects.insert(
-                    gen_key(id, 0),
+                    rect_id_sub_key(id, 0),
                     Rect::new(r.from, Point::new(*split_x, r.to.y)),
                 );
                 rects.insert(
-                    gen_key(id, 1),
+                    rect_id_sub_key(id, 1),
                     Rect::new(Point::new(*split_x, r.from.y), r.to),
                 );
                 rects.remove(id);
                 cost += (LINE_CUT_COST * canvas_size / r.size()).round();
             }
+            Op::Merge(id1, id2) => {
+                let r1 = *rects.get(id1).unwrap();
+                let r2 = *rects.get(id2).unwrap();
+                let fr = Point::new(min(r1.from.x, r2.from.x), min(r1.from.y, r2.from.y));
+                let to = Point::new(max(r1.to.x, r2.to.x), max(r1.to.y, r2.to.y));
+                let new_r = Rect::new(fr, to);
+                assert!(new_r.size() == r1.size() + r2.size());
+                last_rect_id += 1;
+                rects.insert(rect_id_from_usize(last_rect_id), new_r);
+                cost += (MERGE_COST * canvas_size / fmax(r1.size(), r2.size())).round();
+                rects.remove(id1);
+                rects.remove(id2);
+            }
         }
     }
-    dbg!(cost);
     OpResult { picture: a, cost }
 }
 
@@ -301,6 +389,30 @@ fn save_image(a: &Array2D<Color>, path: &str) {
         image::ColorType::Rgba8,
     )
     .unwrap()
+}
+
+fn save_score(score: f64, path: &str) -> bool {
+    if Path::new(path).exists() {
+        let mut input = Input::new_file(path);
+        let prev_score = input.f64().0;
+        if prev_score < score {
+            dbg!("will not update score", prev_score, score);
+            return false;
+        }
+    }
+
+    set_global_output_to_file(path);
+    out_line!(score);
+    output().flush();
+    true
+}
+
+fn save_ops(ops: &[Op], path: &str) {
+    set_global_output_to_file(path);
+    for op in ops.iter() {
+        out_line!(format!("{:?}", op));
+    }
+    output().flush();
 }
 
 struct ColorPicker {
@@ -379,7 +491,14 @@ const MERGE_COST: f64 = 1.0;
 
 const FMAX: f64 = f64::MAX / 100.0;
 
-fn cost_of_coloring(n: usize, m: usize, p: Point) -> f64 {
+struct ColorToCorner {
+    cost: f64,
+    ops: Vec<Op>,
+    cur_whole_id: usize,
+}
+
+fn color_corner(n: usize, m: usize, p: Point, cur_whole_id: usize, color: Color) -> ColorToCorner {
+    let main_id = rect_id_from_usize(cur_whole_id);
     let full_area = (n as f64) * (m as f64);
 
     let x_right = (n - p.x as usize) as f64;
@@ -394,23 +513,88 @@ fn cost_of_coloring(n: usize, m: usize, p: Point) -> f64 {
 
     if p.x == 0 || p.y == 0 {
         if p.x == 0 && p.y == 0 {
-            return COLOR_COST;
+            return ColorToCorner {
+                cost: COLOR_COST,
+                ops: vec![Op::Color(rect_id_from_usize(cur_whole_id), color)],
+                cur_whole_id,
+            };
         }
         if p.x == 0 {
-            return LINE_CUT_COST
-                + COLOR_COST * full_area / s2
-                + MERGE_COST * full_area / fmax(s1, s2);
+            let mut ops = vec![];
+            ops.push(Op::CutY(main_id.clone(), p.y));
+            ops.push(Op::Color(rect_id_sub_key(&main_id, 1), color));
+            ops.push(Op::Merge(
+                rect_id_sub_key(&main_id, 0),
+                rect_id_sub_key(&main_id, 1),
+            ));
+
+            return ColorToCorner {
+                cost: LINE_CUT_COST
+                    + (COLOR_COST * full_area / s2).round()
+                    + (MERGE_COST * full_area / fmax(s1, s2)).round(),
+                ops,
+                cur_whole_id: cur_whole_id + 1,
+            };
         }
         assert!(p.y == 0);
-        return LINE_CUT_COST + COLOR_COST * full_area / s2 + MERGE_COST * full_area / fmax(s2, s3);
+        {
+            let mut ops = vec![];
+            ops.push(Op::CutX(main_id.clone(), p.x));
+            ops.push(Op::Color(rect_id_sub_key(&main_id, 1), color));
+            ops.push(Op::Merge(
+                rect_id_sub_key(&main_id, 0),
+                rect_id_sub_key(&main_id, 1),
+            ));
+
+            return ColorToCorner {
+                cost: LINE_CUT_COST
+                    + (COLOR_COST * full_area / s2).round()
+                    + (MERGE_COST * full_area / fmax(s3, s2)).round(),
+                ops,
+                cur_whole_id: cur_whole_id + 1,
+            };
+        }
     }
 
-    let merge_y_first =
-        full_area / fmax(s0, s3) + full_area / fmax(s1, s2) + full_area / fmax(s0 + s3, s1 + s2);
-    let merge_x_first =
-        full_area / fmax(s0, s1) + full_area / fmax(s2, s3) + full_area / fmax(s0 + s1, s2 + s3);
-    let merge_back = fmin(merge_y_first, merge_x_first) * MERGE_COST;
-    POINT_CUT_COST + COLOR_COST * full_area / s2 + merge_back
+    let mut ops = vec![];
+
+    ops.push(Op::CutPoint(main_id.clone(), p));
+    ops.push(Op::Color(rect_id_sub_key(&main_id, 2), color));
+    let merge_y_first = (full_area / fmax(s0, s3) * MERGE_COST).round()
+        + (full_area / fmax(s1, s2) * MERGE_COST).round()
+        + (full_area / fmax(s0 + s3, s1 + s2) * MERGE_COST).round();
+    let merge_x_first = (full_area / fmax(s0, s1) * MERGE_COST).round()
+        + (full_area / fmax(s2, s3) * MERGE_COST).round()
+        + (full_area / fmax(s0 + s1, s2 + s3) * MERGE_COST).round();
+    if merge_x_first < merge_y_first {
+        ops.push(Op::Merge(
+            rect_id_sub_key(&main_id, 0),
+            rect_id_sub_key(&main_id, 1),
+        ));
+        ops.push(Op::Merge(
+            rect_id_sub_key(&main_id, 3),
+            rect_id_sub_key(&main_id, 2),
+        ));
+    } else {
+        ops.push(Op::Merge(
+            rect_id_sub_key(&main_id, 2),
+            rect_id_sub_key(&main_id, 1),
+        ));
+        ops.push(Op::Merge(
+            rect_id_sub_key(&main_id, 3),
+            rect_id_sub_key(&main_id, 0),
+        ));
+    }
+    ops.push(Op::Merge(
+        rect_id_from_usize(cur_whole_id + 1),
+        rect_id_from_usize(cur_whole_id + 2),
+    ));
+    let merge_back = fmin(merge_y_first, merge_x_first);
+    ColorToCorner {
+        cost: POINT_CUT_COST + (COLOR_COST * full_area / s2).round() + merge_back,
+        ops,
+        cur_whole_id: cur_whole_id + 3,
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -495,6 +679,7 @@ fn find_solution(
     max_next_x_blocks: usize,
     max_next_y_blocks: usize,
     smaller_sol: Option<Box<Solution>>,
+    rnd: &mut Random,
 ) -> Solution {
     let n = expected.len();
     let m = expected[0].len();
@@ -517,7 +702,6 @@ fn find_solution(
     let mut dp = Array2D::new(simple_elem.clone(), xs.len() - 1, ys.len() - 1);
     let mut dp_prev = Array2D::new(simple_elem_prev.clone(), xs.len() - 1, ys.len() - 1);
     for x_it in (0..xs.len() - 1).rev() {
-        dbg!(x_it);
         for y_it in (0..ys.len() - 1).rev() {
             let x_start = xs[x_it];
             let y_start = ys[y_it];
@@ -554,22 +738,6 @@ fn find_solution(
                     }
 
                     {
-                        // color fully
-                        let best_color =
-                            color_picker.pick_color(p(x_start, y_start), p(x_end, y_end));
-                        let cost = get_pixel_distance_range_one_color(
-                            best_color,
-                            expected,
-                            x_start..x_end,
-                            y_start..y_end,
-                        ) + cost_of_coloring(n, m, p(x_start, y_start));
-                        if cost < cur_dp[x_len][y_len] {
-                            cur_dp[x_len][y_len] = cost;
-                            cur_dp_prev[x_len][y_len] = BestWay::FullColor(best_color);
-                        }
-                    }
-
-                    {
                         // split by x
                         for x_mid_it in x_it + 1..x2_it {
                             let cost = cur_dp[x_mid_it - x_it][y_len]
@@ -588,6 +756,48 @@ fn find_solution(
                             if cost < cur_dp[x_len][y_len] {
                                 cur_dp[x_len][y_len] = cost;
                                 cur_dp_prev[x_len][y_len] = BestWay::SplitY(y_mid_it);
+                            }
+                        }
+                    }
+
+                    {
+                        // color fully
+                        let best_color =
+                            color_picker.pick_color(p(x_start, y_start), p(x_end, y_end));
+                        let cost_to_color =
+                            color_corner(n, m, p(x_start, y_start), 0, best_color).cost;
+                        let estimated_pixel_dist = estimate_pixel_distance_range_one_color(
+                            best_color,
+                            expected,
+                            x_start..x_end,
+                            y_start..y_end,
+                            rnd,
+                        );
+                        const ESTIMATE_COEF: f64 = 0.8;
+                        let estimated_value = match estimated_pixel_dist {
+                            EstimateResult::RealResult(x) => x,
+                            EstimateResult::Estimation(x) => x,
+                        };
+                        let coef = match estimated_pixel_dist {
+                            EstimateResult::RealResult(_) => 1.0,
+                            EstimateResult::Estimation(_) => ESTIMATE_COEF,
+                        };
+                        if estimated_value * coef + cost_to_color < cur_dp[x_len][y_len] {
+                            let mut cost = cost_to_color;
+                            match estimated_pixel_dist {
+                                EstimateResult::RealResult(x) => cost += x,
+                                EstimateResult::Estimation(_) => {
+                                    cost += get_pixel_distance_range_one_color(
+                                        best_color,
+                                        expected,
+                                        x_start..x_end,
+                                        y_start..y_end,
+                                    )
+                                }
+                            };
+                            if cost < cur_dp[x_len][y_len] {
+                                cur_dp[x_len][y_len] = cost;
+                                cur_dp_prev[x_len][y_len] = BestWay::FullColor(best_color);
                             }
                         }
                     }
@@ -650,13 +860,70 @@ fn add_more_coords(coords: &[usize], rnd: &mut Random) -> Vec<usize> {
     res
 }
 
-fn solve_one(expected: &Array2D<Color>) -> Array2D<Color> {
+struct SolutionRes {
+    a: Array2D<Color>,
+    expected_score: f64,
+    ops: Vec<Op>,
+}
+
+fn gen_ops_by_rects(rects: &[OneRect], field_n: usize, field_m: usize) -> Vec<Op> {
+    let mut res = vec![];
+    let n = rects.len();
+    let mut ok_after = Array2D::new(true, n, n);
+    for i in 0..n {
+        for j in 0..n {
+            if rects[i].from.x >= rects[j].to.x || rects[i].from.y >= rects[j].to.y {
+                ok_after[i][j] = true;
+            }
+        }
+    }
+    let mut need_more_before = vec![0; n];
+    for i in 0..n {
+        for j in 0..n {
+            if !ok_after[i][j] {
+                need_more_before[j] += 1;
+            }
+        }
+    }
+    let mut queue = vec![];
+    let mut used = vec![false; n];
+    loop {
+        let mut changed = false;
+        for v in 0..n {
+            if need_more_before[v] == 0 && !used[v] {
+                changed = true;
+                used[v] = true;
+                queue.push(v);
+                for j in 0..n {
+                    if !ok_after[v][j] {
+                        need_more_before[j] -= 1;
+                    }
+                }
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    assert!(queue.len() == n);
+    let mut cur_whole_id = 0;
+    for &rect_id in queue.iter() {
+        let r = rects[rect_id];
+        let to_color = color_corner(field_n, field_m, r.from, cur_whole_id, r.color);
+        res.extend(to_color.ops);
+        cur_whole_id = to_color.cur_whole_id;
+    }
+
+    res
+}
+
+fn solve_one(expected: &Array2D<Color>, block_size: usize) -> SolutionRes {
     let color_picker = ColorPicker::new(&expected);
     let n = expected.len();
     let m = expected[0].len();
-    const BLOCK_SIZE: usize = 15;
-    let xs = gen_coords(BLOCK_SIZE, n);
-    let ys = gen_coords(BLOCK_SIZE, m);
+    // const BLOCK_SIZE: usize = 6;
+    let xs = gen_coords(block_size, n);
+    let ys = gen_coords(block_size, m);
     let blocks_n = xs.len() - 1;
     let blocks_m = ys.len() - 1;
 
@@ -666,11 +933,11 @@ fn solve_one(expected: &Array2D<Color>) -> Array2D<Color> {
 
     let more_xs_2 = add_more_coords(&more_xs, &mut rnd);
     let more_ys_2 = add_more_coords(&more_ys, &mut rnd);
-    dbg!(&xs);
-    dbg!(&more_xs);
-    dbg!(&more_xs_2);
+    // dbg!(&xs);
+    // dbg!(&more_xs);
+    // dbg!(&more_xs_2);
 
-    const MAX_NEXT_BLOCKS: usize = 12;
+    const MAX_NEXT_BLOCKS: usize = 15;
 
     let smallest_solution = find_solution(
         expected,
@@ -680,6 +947,7 @@ fn solve_one(expected: &Array2D<Color>) -> Array2D<Color> {
         MAX_NEXT_BLOCKS,
         MAX_NEXT_BLOCKS,
         None,
+        &mut rnd,
     );
 
     let small_solution = find_solution(
@@ -690,8 +958,10 @@ fn solve_one(expected: &Array2D<Color>) -> Array2D<Color> {
         MAX_NEXT_BLOCKS,
         MAX_NEXT_BLOCKS,
         Some(Box::new(smallest_solution)),
+        // None,
+        &mut rnd,
     );
-    dbg!("small solution done!");
+    // dbg!("small solution done!");
     let solution = find_solution(
         expected,
         &xs,
@@ -700,12 +970,15 @@ fn solve_one(expected: &Array2D<Color>) -> Array2D<Color> {
         blocks_n,
         blocks_m,
         Some(Box::new(small_solution)),
+        &mut rnd,
     );
 
     let mut rects = vec![];
     solution.iter_rects(0, 0, xs.len() - 1, ys.len() - 1, &mut rects);
 
     dbg!(rects.len());
+
+    let ops = gen_ops_by_rects(&rects, n, m);
     // for r in rects.iter() {
     //     dbg!(
     //         (r.to.x - r.from.x) as usize / BLOCK_SIZE,
@@ -723,9 +996,21 @@ fn solve_one(expected: &Array2D<Color>) -> Array2D<Color> {
         }
     }
 
+    let ops_res = apply_ops(&ops, n, m);
+    // dbg!(ops_res.cost + get_pixel_distance(&ops_res.picture, expected));
+    for i in 0..n {
+        for j in 0..m {
+            assert_eq!(my_picture[i][j], ops_res.picture[i][j]);
+        }
+    }
+
     let res = solution.dp[0][0][xs.len() - 1][ys.len() - 1];
     dbg!(res);
-    my_picture
+    SolutionRes {
+        a: my_picture,
+        expected_score: res,
+        ops,
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -750,12 +1035,17 @@ fn read_case(test_id: usize) -> Array2D<Color> {
     expected
 }
 
-fn solve_case(test_id: usize) {
+fn solve_case(test_id: usize, block_size: usize) {
     let expected = read_case(test_id);
-    // const N: usize = 50;
-    // let a = Array2D::new_f(N, N, |r, c| expected[r][c]);
-    let pic = solve_one(&expected);
-    save_image(&pic, &format!("../images/{}.res.png", test_id))
+    let solution = solve_one(&expected, block_size);
+
+    if save_score(
+        solution.expected_score,
+        &format!("../scores/{}.txt", test_id),
+    ) {
+        save_image(&solution.a, &format!("../images/{}.res.png", test_id));
+        save_ops(&solution.ops, &format!("../outputs/{}.isl", test_id))
+    }
 }
 
 fn show_case(test_id: usize) {
@@ -769,6 +1059,20 @@ fn show_case(test_id: usize) {
     save_image(&op_res.picture, &format!("../images/{}.res.png", test_id))
 }
 
+fn solve_all() {
+    for &block_size in [50, 20, 15, 10, 8, 7, 6, 5].iter() {
+        for task_id in 1..=25 {
+            dbg!(task_id, block_size);
+            let start = Instant::now();
+            solve_case(task_id, block_size);
+            dbg!(start.elapsed());
+        }
+    }
+}
+
 fn main() {
-    solve_case(15)
+    solve_all();
+    // let start = Instant::now();
+    // solve_case(4);
+    // dbg!(start.elapsed());
 }
