@@ -1134,6 +1134,31 @@ void solveOpt() {
       if (GetTime() > optSeconds || !optRunning) {
         break;
       }
+
+      if (hardMove) {
+        hardMove = false;
+        int id = rng() % (int) corners.size();
+        int i = corners[id].first;
+        int j = corners[id].second;
+        vector<pair<pair<int, int>, int>> toMove;
+        for (size_t cc = 0; cc < corners.size(); cc++)
+            if (abs(corners[cc].first - i) < 42 && abs(corners[cc].second - j) < 42) {
+                toMove.emplace_back(corners[cc], cc);
+            }
+        for (auto [p, id] : toMove) {
+            auto [ii, jj] = p;
+            RemoveCorner(ii, jj);
+            ii += rng() % 11 - 5;
+            jj += rng() % 11 - 5;
+            if (ii < 0) ii = 0;
+            if (ii >= N) ii = N -1;
+            if (jj < 0) jj = 0;
+            if (jj >= N) jj = N - 1;
+            AddCorner(ii, jj, id);
+        }
+        cerr << "Moved " << toMove.size() << ", total: " << total << endl;
+      }
+
       if (it % 100 == 0) {
         T = T * 0.9999;
       }
@@ -1217,10 +1242,12 @@ void solveOpt() {
       int i, j;
       { // ADD
         do {
-          qit++;
-          i = qit % (N * N) / N;
-          j = qit % N;
-        } while (top[i][j] == make_pair(i, j)); // || (localTries > 0 && (abs(i - localI) > 20 || abs(j - localJ) > 20)));
+          // qit++;
+          // i = qit % (N * N) / N;
+          // j = qit % N;
+            i = rng() % N;
+            j = rng() % N;
+        } while (top[i][j] == make_pair(i, j) || (localTries > 0 && (abs(i - localI) > 20 || abs(j - localJ) > 20)));
         // if (localTries > 0) localTries--;
         auto old_total = total;
         AddCorner(i, j, -1);
