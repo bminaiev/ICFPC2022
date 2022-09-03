@@ -80,12 +80,14 @@ fn local_optimize(test_id: usize) {
 
 fn main() {
     // solve_all();
-    const TEST_ID: usize = 8;
+    const TEST_ID: usize = 12;
     // loop {
     //     dbg!("NEXT ITERATION!!!");
     for test_id in TEST_ID..=TEST_ID {
         dbg!(test_id);
-        local_optimize(test_id);
+        loop {
+            local_optimize(test_id);
+        }
         // solve_fast(test_id);
         // solve_case(test_id, 6, true);
     }

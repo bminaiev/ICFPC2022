@@ -77,30 +77,66 @@ fn estimate_best_color(colors: &[Color]) -> Color {
     res
 }
 
+#[inline(never)]
 fn gen_field_by_rects(rects: &[SolutionRect], test_case: &TestCase) -> Array2D<Color> {
     let mut my = gen_start_field(test_case);
-    let n = test_case.expected.len();
-    let m = test_case.expected[0].len();
-    for r in rects.iter() {
-        for x in r.from.x as usize..n {
-            for y in r.from.y as usize..m {
-                my[x][y] = r.color;
+    let (n, m) = test_case.get_size();
+    let by_ids = colored_by_rect(rects, n, m);
+    for x in 0..n {
+        for y in 0..m {
+            if by_ids[x][y] != std::usize::MAX {
+                my[x][y] = rects[by_ids[x][y]].color;
             }
         }
     }
     my
 }
 
+#[inline(never)]
 fn colored_by_rect(rects: &[SolutionRect], n: usize, m: usize) -> Array2D<usize> {
-    let mut colored_by_rect = Array2D::new(std::usize::MAX, n, m);
+    let mut res = Array2D::new(std::usize::MAX, n, m);
     for (r_id, r) in rects.iter().enumerate() {
-        for x in r.from.x as usize..n {
-            for y in r.from.y as usize..m {
-                colored_by_rect[x][y] = r_id;
+        res[r.from.x as usize][r.from.y as usize] = r_id;
+    }
+    for x in 0..n {
+        for y in 0..m {
+            if res[x][y] != std::usize::MAX {
+                if x + 1 < n && (res[x + 1][y] == std::usize::MAX || res[x + 1][y] < res[x][y]) {
+                    res[x + 1][y] = res[x][y];
+                }
+                if y + 1 < m && (res[x][y + 1] == std::usize::MAX || res[x][y + 1] < res[x][y]) {
+                    res[x][y + 1] = res[x][y];
+                }
             }
         }
     }
-    colored_by_rect
+    res
+}
+
+#[inline(never)]
+fn get_covered_pixels_if_add_new_rect(
+    old_colored: &Array2D<usize>,
+    x_start: usize,
+    y_start: usize,
+    expected: &Array2D<Color>,
+    my_id: usize,
+) -> Vec<Color> {
+    let n = expected.len();
+    let m = expected[0].len();
+    let mut res = vec![];
+    for x in x_start..n {
+        if old_colored[x][y_start] >= my_id {
+            break;
+        }
+        for y in y_start..m {
+            if old_colored[x][y] >= my_id {
+                break;
+            }
+            res.push(expected[x][y]);
+        }
+    }
+
+    res
 }
 
 fn shrink_rects(rects: &mut Vec<SolutionRect>, n: usize, m: usize) {
@@ -226,7 +262,7 @@ pub fn optimize_positions(
                 not_changed_it = 0;
             } else {
                 rects.insert(rect_id, r);
-                assert!(score_by_rects(&rects, test_case, merge_cost) == my_score);
+                // assert!(score_by_rects(&rects, test_case, merge_cost) == my_score);
             }
         } else if change_type == 1 {
             let shift = SHIFTS_8[rnd.gen(0..4)];
@@ -263,16 +299,15 @@ pub fn optimize_positions(
                         color: Color::START,
                     },
                 );
-                let colored_by_rect = colored_by_rect(&rects, n, m);
-                assert!(colored_by_rect[new_from.x as usize][new_from.y as usize] == idx);
-                let mut covered_pixels = vec![];
-                for x in 0..n {
-                    for y in 0..m {
-                        if colored_by_rect[x][y] == idx {
-                            covered_pixels.push(expected[x][y]);
-                        }
-                    }
-                }
+
+                let covered_pixels = get_covered_pixels_if_add_new_rect(
+                    &old_colored_by_rect,
+                    new_from.x as usize,
+                    new_from.y as usize,
+                    expected,
+                    idx,
+                );
+
                 let best_color =
                     find_best_color(&covered_pixels, estimate_best_color(&covered_pixels));
                 rects[idx].color = best_color;
@@ -283,7 +318,7 @@ pub fn optimize_positions(
                     not_changed_it = 0;
                 } else {
                     rects.remove(idx);
-                    assert!(score_by_rects(&rects, test_case, merge_cost) == my_score);
+                    // assert!(score_by_rects(&rects, test_case, merge_cost) == my_score);
                 }
             }
         } else if change_type == 3 {
@@ -301,7 +336,7 @@ pub fn optimize_positions(
                     not_changed_it = 0;
                 } else {
                     rects.swap(pos, pos + 1);
-                    assert!(score_by_rects(&rects, test_case, merge_cost) == my_score);
+                    // assert!(score_by_rects(&rects, test_case, merge_cost) == my_score);
                 }
             }
         } else {
