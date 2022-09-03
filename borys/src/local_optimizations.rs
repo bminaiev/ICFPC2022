@@ -1,13 +1,15 @@
+use std::cmp::min;
 use std::time::Instant;
 
 use algo_lib::dbg;
-use algo_lib::iters::shifts::SHIFTS_4;
+use algo_lib::iters::shifts::SHIFTS_8;
 use algo_lib::misc::rand::Random;
 use algo_lib::{collections::array_2d::Array2D, misc::min_max::UpdateMinMax};
 
 use crate::color_corner::color_corner;
 use crate::ops_by_rects::gen_ops_by_solution_rects;
 use crate::solver::SolutionRes;
+use crate::utils::p;
 use crate::Point;
 use crate::{
     color::Color,
@@ -52,6 +54,24 @@ fn find_best_color(colors: &[Color], mut my: Color) -> Color {
     }
     // dbg!(start_dist, cur_best_dist);
     my
+}
+
+fn estimate_best_color(colors: &[Color]) -> Color {
+    let mut sum = vec![0.0; 4];
+    for c in colors.iter() {
+        for i in 0..4 {
+            sum[i] += c.0[i] as f64;
+        }
+    }
+    let mut res = Color::default();
+    for i in 0..4 {
+        let x = (sum[i] / (colors.len() as f64)).round();
+        assert!(x >= 0.0);
+        assert!(x <= 255.0);
+        res.0[i] = x as u8;
+    }
+    // dbg!(start_dist, cur_best_dist);
+    res
 }
 
 fn gen_field_by_rects(rects: &[SolutionRect], n: usize, m: usize) -> Array2D<Color> {
@@ -163,6 +183,7 @@ pub fn optimize_positions(
     expected: &Array2D<Color>,
     rects: &[SolutionRect],
     ops: &[Op],
+    rnd: &mut Random,
 ) -> SolutionRes {
     let mut rects = rects.to_vec();
     let n = expected.len();
@@ -172,18 +193,18 @@ pub fn optimize_positions(
     let start_score = my_score;
 
     let mut not_changed_it = 0;
-    let mut rnd = Random::new(787788);
     let start = Instant::now();
     loop {
         if start.elapsed().as_secs_f64() > 10.0 {
             break;
         }
         not_changed_it += 1;
-        if not_changed_it == 200 {
+        if not_changed_it == 1000 {
             break;
         }
         let rect_id = rnd.gen(0..rects.len());
-        if rnd.gen_bool() {
+        let change_type = rnd.gen(0..4);
+        if change_type == 0 {
             let r = rects[rect_id];
             rects.remove(rect_id);
             let new_score = score_by_rects(&rects, n, m, expected);
@@ -195,8 +216,8 @@ pub fn optimize_positions(
                 rects.insert(rect_id, r);
                 assert!(score_by_rects(&rects, n, m, expected) == my_score);
             }
-        } else {
-            let shift = SHIFTS_4[rnd.gen(0..4)];
+        } else if change_type == 1 {
+            let shift = SHIFTS_8[rnd.gen(0..4)];
             let prev_from = rects[rect_id].from;
             let new_from = rects[rect_id].from.apply_shift(&shift);
 
@@ -211,6 +232,68 @@ pub fn optimize_positions(
                     rects[rect_id].from = prev_from;
                 }
             }
+        } else if change_type == 2 {
+            // insert new rectangle
+            if rnd.gen_double() < 0.5 {
+                let new_from = p(rnd.gen(0..n), rnd.gen(0..m));
+
+                let old_colored_by_rect = colored_by_rect(&rects, n, m);
+                let old_id = old_colored_by_rect[new_from.x as usize][new_from.y as usize];
+                if old_id == std::usize::MAX {
+                    continue;
+                }
+                let idx = rnd.gen(old_id + 1..min(rects.len() + 1, old_id + 10)); //rnd.gen(0..rects.len() + 1);
+                rects.insert(
+                    idx,
+                    SolutionRect {
+                        from: new_from,
+                        to: p(n, m),
+                        color: Color::START,
+                    },
+                );
+                let colored_by_rect = colored_by_rect(&rects, n, m);
+                assert!(colored_by_rect[new_from.x as usize][new_from.y as usize] == idx);
+                let mut covered_pixels = vec![];
+                for x in 0..n {
+                    for y in 0..m {
+                        if colored_by_rect[x][y] == idx {
+                            covered_pixels.push(expected[x][y]);
+                        }
+                    }
+                }
+                let best_color =
+                    find_best_color(&covered_pixels, estimate_best_color(&covered_pixels));
+                rects[idx].color = best_color;
+                let new_score = score_by_rects(&rects, n, m, expected);
+                if new_score < my_score {
+                    dbg!("new best score! (by adding new!!!)", my_score, new_score);
+                    my_score = new_score;
+                    not_changed_it = 0;
+                } else {
+                    rects.remove(idx);
+                    assert!(score_by_rects(&rects, n, m, expected) == my_score);
+                }
+            }
+        } else if change_type == 3 {
+            if rects.len() > 1 {
+                let pos = rnd.gen(0..rects.len() - 1);
+                rects.swap(pos, pos + 1);
+                let new_score = score_by_rects(&rects, n, m, expected);
+                if new_score < my_score {
+                    dbg!(
+                        "new best score! (by swapping rects!!!)",
+                        my_score,
+                        new_score
+                    );
+                    my_score = new_score;
+                    not_changed_it = 0;
+                } else {
+                    rects.swap(pos, pos + 1);
+                    assert!(score_by_rects(&rects, n, m, expected) == my_score);
+                }
+            }
+        } else {
+            unreachable!();
         }
     }
 

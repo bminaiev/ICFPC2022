@@ -93,7 +93,8 @@ pub fn read_case(test_id: usize) -> Array2D<Color> {
     for i in 0..m {
         for j in 0..n {
             for k in 0..4 {
-                expected[j][m - i - 1].0[k] = input.u32() as u8;
+                // expected[j][m - i - 1].0[k] = input.u32() as u8;
+                expected[j][i].0[k] = input.u32() as u8;
             }
         }
     }

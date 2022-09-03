@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use algo_lib::{dbg, geometry::point::PointT};
+use algo_lib::{dbg, geometry::point::PointT, misc::rand::Random};
 
 mod color;
 
@@ -64,21 +64,25 @@ fn solve_fast(task_id: usize) {
 }
 
 fn local_optimize(test_id: usize) {
+    let mut rnd = Random::new_time_seed();
     let start = Instant::now();
     let expected = read_case(test_id);
     let ops = read_submit(&format!("../outputs/{}.isl", test_id));
     let rects = gen_rects_by_ops(&ops, expected.len(), expected[0].len());
-    let new_sol = optimize_positions(&expected, &rects, &ops);
+    let new_sol = optimize_positions(&expected, &rects, &ops, &mut rnd);
     save_solution(test_id, &new_sol);
     dbg!(start.elapsed());
 }
 
 fn main() {
     // solve_all();
-    const TEST_ID: usize = 1;
-    for test_id in TEST_ID..=TEST_ID {
-        dbg!(test_id);
-        local_optimize(test_id);
+    const TEST_ID: usize = 25;
+    loop {
+        dbg!("NEXT ITERATION!!!");
+        for test_id in 1..=25 {
+            dbg!(test_id);
+            local_optimize(test_id);
+        }
     }
     // let start = Instant::now();
     // solve_case(4);
