@@ -205,7 +205,7 @@ void downloadSolution(int testId) {
     Input in = readInputAndStoreAsGlobal(inputsPath + to_string(currentTestId) + ".txt");
     auto [sol, _] = loadSolution(in, solutionsPath + to_string(currentTestId) + ".txt");
     postprocess(sol);
-    cerr << "downloaded and loaded sol with score " << sol.score << endl;
+    cerr << "downloaded and loaded sol for test " << testId << " with score " << sol.score << endl;
 }
 
 void fileWindow() {

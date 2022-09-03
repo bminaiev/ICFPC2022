@@ -74,16 +74,26 @@ def save_standings():
                 fout.write(line + "\n")
 
     mintest = {}
+    mintestU = {}
     for team in js['users']:
         for test in team['results']:
             tid = test['problem_id']
             if tid not in mintest:
                 mintest[tid] = 10 ** 9
+                mintestU[tid] = 10 ** 9
             if test['submission_count'] == 0:
                 continue
             mintest[tid] = min(mintest[tid], test['min_cost'])
+            if team['team_name'] == 'Unagi':
+                mintestU[tid] = min(mintestU[tid], test['min_cost'])
+
             # if tid == 1:
             #     print(test['min_cost'])
+
+    # s = 0
+    # for tid in range(1, 26):
+    #     s += mintestU[tid]
+    # print("Unagi 1-25:", s)
 
     with open("tests.txt", "w") as fout:
         print('===== Tests =====')
