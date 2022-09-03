@@ -60,9 +60,7 @@ pub fn read_submit(path: &str) -> Vec<Op> {
         if !input.has_more_elements() {
             break;
         }
-        // dbg!("has more lements");
         let cmd = input.string_as_string();
-        // dbg!("cmd", cmd);
         if cmd == "cut" {
             let id = read_id(&mut input);
             let token = input.string();
