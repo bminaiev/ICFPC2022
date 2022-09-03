@@ -427,8 +427,9 @@ void optsWindow() {
     if (ImGui::Begin("Solution")) {
         ImGui::Text("Current test: %d", currentTestId);
         if (currentTestId >= 1) {
-            ImGui::DragInt("DP Step", &S, 1, 2, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::DragInt("Direction", &mode, 1, 0, 3, "D=%d", ImGuiSliderFlags_AlwaysClamp);
+            // ImGui::DragInt("DP Step", &S, 1, 2, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
+            // ImGui::DragInt("Direction", &mode, 1, 0, 3, "D=%d", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderFloat("Temperature", &T, 0.00001f, 0.2f, "T=%.5f");
             ImGui::Checkbox("Run in main thread", &runInMainThread);
 
             if (ImGui::Button("Solve Gena")) {

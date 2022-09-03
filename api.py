@@ -84,7 +84,7 @@ def print_ultra_cool_tests(test_results):
         print()
         print((" " * col_width).join("|" * (cols + 1)))
 
-        for p in range(5):
+        for p in range(4):
             sys.stdout.write("|")
             for j in range(cols):
                 tl = top_list[cur + j]

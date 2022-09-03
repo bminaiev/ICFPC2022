@@ -15,5 +15,6 @@ Log& operator<<(Log& l, const T& other) {
 
 Log msg;
 int S = 10;
+float T = 0.01;
 int optSeconds = 60;
 bool optRunning;

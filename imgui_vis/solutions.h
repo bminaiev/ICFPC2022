@@ -1112,19 +1112,32 @@ void solveOpt() {
     cerr << "total = " << res.score + total << endl;
 //    for (int i = 0; i < N; i += 40) for (int j = 0; j < N; j += 40) if (i > 0 || j > 0) AddCorner(i, j);
     #define wlog(operationType) msg.clear() << "it " << it << " [" << operationType << "] cnt: " << corners.size() << ", total: " << res.score + total / 1000 << " (" << res.score << " merge), time: " << GetTime() << + "s\n"
+    #define setlocal localTries = 100; localI = i; localJ = j;
+    int localTries = 0;
+    int localI, localJ;
     for (int it = 0; it < 1000000; it++) {
       if (GetTime() > optSeconds || !optRunning) {
         break;
+      }
+      if (it % 100 == 0) {
+        T = T * 0.9999;
       }
       if (rng() % 2 == 0 && corners.size() >= 2) {
         int id = rng() % (int) corners.size();
         int i = corners[id].first;
         int j = corners[id].second;
+        if (localTries > 0) {
+            localTries--;
+            if (abs(i - localI) > 40 || abs(j - localJ) > 40) {
+                continue;
+            }
+        }
         auto old_total = total;
         RemoveCorner(i, j);
         AddCorner(i, j, -1);
-        if (total <= old_total) {
+        if (total <= old_total || exp((old_total - total) / 10000.0 / T) > (rng() % 1000) / 1000.0) {
           wlog("SWP");
+          setlocal
         } else {
           RemoveCorner(i, j);
           AddCorner(i, j, id);
@@ -1135,6 +1148,12 @@ void solveOpt() {
         int id = rng() % (int) corners.size();
         int i = corners[id].first;
         int j = corners[id].second;
+        if (localTries > 0) {
+            localTries--;
+            if (abs(i - localI) > 40 || abs(j - localJ) > 40) {
+                continue;
+            }
+        }
         int conts = 0;
         while (true) {
           int ni = i - 1 + rng() % 3;
@@ -1167,8 +1186,10 @@ void solveOpt() {
           auto old_total = total;
           RemoveCorner(i, j);
           AddCorner(ni, nj, id);
-          if (total <= old_total) {
+          // cerr << old_total << " " << total << " " << exp((old_total - total) / 10000.0 / T) << " " << (rng() % 1000) / 1000.0 << endl;
+          if (total <= old_total || exp((old_total - total) / 10000.0 / T) > (rng() % 1000) / 1000.0) {
             wlog("MOV");
+            setlocal
             i = ni;
             j = nj;
           } else {
@@ -1184,11 +1205,13 @@ void solveOpt() {
         do {
           i = rng() % N;
           j = rng() % N;
-        } while (top[i][j] == make_pair(i, j));
+        } while (top[i][j] == make_pair(i, j) || (localTries > 0 && (abs(i - localI) > 20 || abs(j - localJ) > 20)));
+        if (localTries > 0) localTries--;
         auto old_total = total;
         AddCorner(i, j, -1);
-        if (total <= old_total) {
+        if (total <= old_total || exp((old_total - total) / 10000.0 / T) > (rng() % 1000) / 1000.0) {
           wlog("ADD");
+          setlocal
         } else {
           RemoveCorner(i, j);
         }
@@ -1196,10 +1219,17 @@ void solveOpt() {
         int id = rng() % (int) corners.size();
         i = corners[id].first;
         j = corners[id].second;
+        if (localTries > 0) {
+            localTries--;
+            if (abs(i - localI) > 40 || abs(j - localJ) > 40) {
+                continue;
+            }
+        }
         auto old_total = total;
         RemoveCorner(i, j);
-        if (total <= old_total) {
+        if (total <= old_total || exp((old_total - total) / 10000.0 / T) > (rng() % 1000) / 1000.0) {
           wlog("REM");
+          setlocal
         } else {
           AddCorner(i, j, id);
         }
