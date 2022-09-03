@@ -965,7 +965,15 @@ int aux[201][201];
 
 int mode = 0;
 
-void solveGena() {
+vector<pair<int, int>> dp_corners;
+
+void solveGena(int S, int mode) {
+/*    if (S == -1) {
+      S = ::S;
+    }
+    if (mode == -1) {
+      mode = ::mode;
+    }*/
     if (S < 2) {
       msg = "sorry, S must be at least 2";
       return;
@@ -1171,6 +1179,7 @@ void solveGena() {
       cand2    += llround(1.0 * n / max(x, m - x));
       return cand1 < cand2;
     };
+    dp_corners.clear();
     int idx = 0;
     for (int it = 0; it < rect_cnt; it++) {
       int i = que[it];
@@ -1178,6 +1187,7 @@ void solveGena() {
       int ya = rects[i].first[1];
       int xb = rects[i].first[2];
       int yb = rects[i].first[3];
+      dp_corners.emplace_back(xa * S, ya * S);
       Color paint_into = rects[i].second;
       if (mode == 0) {
         if (xa == 0 && ya == 0) {
@@ -1306,6 +1316,8 @@ void solveGena() {
 }
 
 void solveOpt() {
+    solveGena(5, 0);
+    auto init_corners = dp_corners;
     auto start_time = Time::now();
     auto GetTime = [&]() {
       auto cur_time = Time::now();
@@ -1482,18 +1494,37 @@ void solveOpt() {
       total -= cost[i][j];
       cost[i][j] = 0;
     };
+    for (auto& p : init_corners) {
+      if (p.first > 0 || p.second > 0) {
+        AddCorner(p.first, p.second);
+      }
+    }
     mt19937 rng(58);
-    msg = "total = " + to_string(total);
+    msg = "cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000);
     for (int it = 0; it < 1000000; it++) {
       if (GetTime() > 30.0) {
         break;
       }
-/*      if ((it + 1) % 20 == 0 && !corners.empty()) {
+      if ((it + 1) % 2 == 0 && !corners.empty()) {
         int id = rng() % (int) corners.size();
         int i = corners[id].first;
         int j = corners[id].second;
+        int ni = i - 1 + rng() % 3;
+        int nj = j - 1 + rng() % 3;
+        if (ni < 0 || nj < 0 || ni >= N || nj >= N || top[ni][nj] == make_pair(ni, nj) || (ni == 0 && nj == 0)) {
+          continue;
+        }
+        auto old_total = total;
+        RemoveCorner(i, j);
+        AddCorner(ni, nj);
+        if (total <= old_total) {
+          msg = "it = " + to_string(it) + ", MOV, cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000) + ", time = " + to_string(GetTime()) + " s";
+        } else {
+          RemoveCorner(ni, nj);
+          AddCorner(i, j);
+        }
         continue;
-      }*/
+      }
       int i = rng() % N;
       int j = rng() % N;
       if (i == 0 && j == 0) {
@@ -1507,7 +1538,7 @@ void solveOpt() {
       }
 //      cerr << "i, j = " << i << ", " << j << endl;
       if (total <= old_total) {
-        msg = "it = " + to_string(it) + ", now total = " + to_string(total) + ", time = " + to_string(GetTime()) + " s";
+        msg = "it = " + to_string(it) + ", A/R, cnt = " + to_string(corners.size()) + ", total = " + to_string(total / 1000) + ", time = " + to_string(GetTime()) + " s";
       } else {
 //        cerr << "it = " << it << ", made it worse: " << total << endl;
 //        break;
@@ -1527,6 +1558,9 @@ void solveOpt() {
       }
     }
     sort(rects.begin(), rects.end(), [&](auto& r1, auto& r2) {
+      if (r1 == r2) {
+        return false;
+      }
       return (Choose(r1.first, r2.first) == r2.first);
     });
     auto Compare = [&](int x, int y) {
@@ -1608,10 +1642,10 @@ void optsWindow() {
         if (ImGui::Button("Solve Gena")) {
             if (0) {
                 cerr << "Run in main thread!\n";
-                solveGena();
+                solveGena(S, mode);
             } else {
                 cerr << "Spawn thread!\n";
-                thread solveThread(solveGena);
+                thread solveThread(solveGena, S, mode);
                 solveThread.detach();
             }
         }
