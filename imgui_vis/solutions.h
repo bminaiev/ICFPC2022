@@ -1060,7 +1060,7 @@ void solveOpt() {
     }
 //    for (int i = 0; i < N; i += 40) for (int j = 0; j < N; j += 40) if (i > 0 || j > 0) AddCorner(i, j);
     for (int it = 0; it < 1000000; it++) {
-      if (GetTime() > optSeconds) {
+      if (GetTime() > optSeconds || !optRunning) {
         break;
       }
       if (rng() % 2 == 0 && corners.size() >= 2) {

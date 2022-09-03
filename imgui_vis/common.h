@@ -20,3 +20,4 @@ Log& operator<<(Log& l, const T& other) {
 Log msg;
 int S = 10;
 int optSeconds = 60;
+bool optRunning;

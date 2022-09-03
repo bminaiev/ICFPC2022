@@ -282,11 +282,11 @@ void fileWindow() {
         sort(tests.begin(), tests.end());
         if (ImGui::BeginTable("Tests", 5))
         {
-            ImGui::TableSetupColumn("ID");
+            ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 64.0f);
             ImGui::TableSetupColumn("Local");
             ImGui::TableSetupColumn("My subs");
             ImGui::TableSetupColumn("Best");
-            ImGui::TableSetupColumn("Loss");
+            ImGui::TableSetupColumn("Loss", ImGuiTableColumnFlags_WidthFixed, 55.0f);
             ImGui::TableHeadersRow();
 
             for (size_t idx = 0; idx < tests.size(); idx++) {
@@ -415,6 +415,7 @@ void optsWindow() {
             }
             ImGui::SameLine(100);
             if (ImGui::Button("Solve Opt")) {
+                optRunning = true;
                 if (runInMainThread) {
                     cerr << "Run in main thread!\n";
                     solveOpt();
@@ -423,7 +424,15 @@ void optsWindow() {
                     thread solveThread(solveOpt);
                     solveThread.detach();
                 }
-            }        
+            }
+            ImGui::SameLine(200);
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.64f, 0.0f, 0.0f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.1f, 0.1f, 1.0f));
+            if (ImGui::Button("Stop Opt")) {
+                optRunning = false;
+            }
+            ImGui::PopStyleColor(2);
+
             ImGui::InputInt("TL, sec", &optSeconds, 1, 10);
 
             ImGui::Text("%s\n%s", msg.c_str(), requestResult.c_str());
