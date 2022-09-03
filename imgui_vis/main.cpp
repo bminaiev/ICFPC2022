@@ -283,6 +283,10 @@ void fileWindow() {
             for (size_t idx = 0; idx < tests.size(); idx++) {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
+                if (tests[idx].first == currentTestId) {
+                    ImU32 color = IM_COL32(180, 180, 180, 180);
+                    ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, color);
+                }
                 int tid = tests[idx].first;
                 string bName = "Load " + to_string(tid);
                 if (ImGui::Button(bName.c_str())) {
