@@ -1316,7 +1316,7 @@ void solveGena(int S, int mode) {
 }
 
 void solveOpt() {
-    solveGena(5, 0);
+    solveGena(10, 0);
     auto init_corners = dp_corners;
     auto start_time = Time::now();
     auto GetTime = [&]() {
