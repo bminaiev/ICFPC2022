@@ -6,7 +6,7 @@ mod color;
 
 use crate::{
     interpreter::apply_ops,
-    local_optimizations::optimize_colors,
+    local_optimizations::{optimize_colors, optimize_positions},
     ops_by_rects::gen_rects_by_ops,
     pixel_dist::get_pixel_distance,
     readings::{read_case, read_submit},
@@ -68,14 +68,15 @@ fn local_optimize(test_id: usize) {
     let expected = read_case(test_id);
     let ops = read_submit(&format!("../outputs/{}.isl", test_id));
     let rects = gen_rects_by_ops(&ops, expected.len(), expected[0].len());
-    let new_sol = optimize_colors(&expected, &rects, &ops);
+    let new_sol = optimize_positions(&expected, &rects, &ops);
     save_solution(test_id, &new_sol);
     dbg!(start.elapsed());
 }
 
 fn main() {
     // solve_all();
-    for test_id in 1..=25 {
+    const TEST_ID: usize = 25;
+    for test_id in TEST_ID..=TEST_ID {
         dbg!(test_id);
         local_optimize(test_id);
     }

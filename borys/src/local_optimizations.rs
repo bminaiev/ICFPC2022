@@ -1,8 +1,14 @@
+use std::time::Instant;
+
 use algo_lib::dbg;
+use algo_lib::iters::shifts::SHIFTS_4;
+use algo_lib::misc::rand::Random;
 use algo_lib::{collections::array_2d::Array2D, misc::min_max::UpdateMinMax};
 
+use crate::color_corner::color_corner;
 use crate::ops_by_rects::gen_ops_by_solution_rects;
 use crate::solver::SolutionRes;
+use crate::Point;
 use crate::{
     color::Color,
     interpreter::apply_ops,
@@ -131,4 +137,83 @@ pub fn optimize_colors(
         a: final_res2.picture,
         expected_score: final_res2.only_ops_cost + pixel_dist3,
     }
+}
+
+fn score_by_rects(rects: &[SolutionRect], n: usize, m: usize, expected: &Array2D<Color>) -> f64 {
+    let my = gen_field_by_rects(&rects, n, m);
+    let pixel_dist = get_pixel_distance(&my, &expected);
+    let mut ops_cost = 0.0;
+    for r in rects.iter() {
+        ops_cost += color_corner(n, m, r.from, 0, r.color).cost;
+    }
+    ops_cost + pixel_dist
+}
+
+fn is_point_inside(p: Point, n: usize, m: usize) -> bool {
+    p.x >= 0 && p.y >= 0 && (p.x as usize) < n && (p.y as usize) < m
+}
+
+pub fn optimize_positions(
+    expected: &Array2D<Color>,
+    rects: &[SolutionRect],
+    ops: &[Op],
+) -> SolutionRes {
+    let mut rects = rects.to_vec();
+    let n = expected.len();
+    let m = expected[0].len();
+
+    let mut my_score = score_by_rects(&rects, n, m, expected);
+    let start_score = my_score;
+
+    let mut not_changed_it = 0;
+    let mut rnd = Random::new(787788);
+    let start = Instant::now();
+    loop {
+        if start.elapsed().as_secs_f64() > 10.0 {
+            break;
+        }
+        not_changed_it += 1;
+        if not_changed_it == 100 {
+            break;
+        }
+        let rect_id = rnd.gen(0..rects.len());
+        let shift = SHIFTS_4[rnd.gen(0..4)];
+        let prev_from = rects[rect_id].from;
+        let new_from = rects[rect_id].from.apply_shift(&shift);
+
+        if is_point_inside(new_from, n, m) {
+            rects[rect_id].from = new_from;
+            let new_score = score_by_rects(&rects, n, m, expected);
+            if new_score < my_score {
+                dbg!("new best score!", my_score, new_score);
+                my_score = new_score;
+                not_changed_it = 0;
+            } else {
+                rects[rect_id].from = prev_from;
+            }
+        }
+    }
+
+    dbg!(my_score);
+
+    shrink_rects(&mut rects, n, m);
+    let new_ops = gen_ops_by_solution_rects(&rects, n, m);
+    let final_res2 = apply_ops(&new_ops, n, m);
+    let pixel_dist3 = get_pixel_distance(&final_res2.picture, &expected);
+    // dbg!(final_res2.only_ops_cost + pixel_dist3);
+    let r = SolutionRes {
+        ops: new_ops,
+        a: final_res2.picture,
+        expected_score: final_res2.only_ops_cost + pixel_dist3,
+    };
+    dbg!("after local shift optimizations", r.expected_score);
+    let after_local = optimize_colors(expected, &rects, &r.ops);
+    let diff = start_score - after_local.expected_score;
+    dbg!(
+        "after color optimizations",
+        after_local.expected_score,
+        start_score,
+        diff
+    );
+    after_local
 }
