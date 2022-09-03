@@ -1,4 +1,4 @@
-use algo_lib::{collections::array_2d::Array2D, io::input::Input, strings::utils::vec2str};
+use algo_lib::{collections::array_2d::Array2D, dbg, io::input::Input, strings::utils::vec2str};
 
 use crate::{color::Color, op::Op, rect_id::RectId, Point};
 
@@ -73,7 +73,12 @@ pub fn read_submit(path: &str) -> Vec<Op> {
             let id = read_id(&mut input);
             let color = read_color(&mut input);
             res.push(Op::Color(id, color));
+        } else if cmd == "merge" {
+            let id1 = read_id(&mut input);
+            let id2 = read_id(&mut input);
+            res.push(Op::Merge(id1, id2));
         } else {
+            dbg!("Can't parse command", cmd);
             assert!(false);
         }
     }

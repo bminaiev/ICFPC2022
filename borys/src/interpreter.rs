@@ -15,7 +15,7 @@ use crate::{
 
 pub struct ApplyOpsResult {
     pub picture: Array2D<Color>,
-    pub cost: f64,
+    pub only_ops_cost: f64,
 }
 
 #[derive(Clone, Copy)]
@@ -135,5 +135,8 @@ pub fn apply_ops(ops: &[Op], n: usize, m: usize) -> ApplyOpsResult {
             }
         }
     }
-    ApplyOpsResult { picture: a, cost }
+    ApplyOpsResult {
+        picture: a,
+        only_ops_cost: cost,
+    }
 }

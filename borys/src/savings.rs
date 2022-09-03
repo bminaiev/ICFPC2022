@@ -9,7 +9,7 @@ use algo_lib::{
     out, out_line,
 };
 
-use crate::{color::Color, op::Op};
+use crate::{color::Color, op::Op, solver::SolutionRes};
 
 pub fn save_image(a: &Array2D<Color>, path: &str) {
     let width = a[0].len();
@@ -57,4 +57,16 @@ pub fn save_ops(ops: &[Op], path: &str) {
         out_line!(format!("{:?}", op));
     }
     output().flush();
+}
+
+pub fn save_solution(test_id: usize, solution: &SolutionRes) {
+    save_image(&solution.a, "../images/last.res.png");
+
+    if save_score(
+        solution.expected_score,
+        &format!("../scores/{}.txt", test_id),
+    ) {
+        save_image(&solution.a, &format!("../images/{}.res.png", test_id));
+        save_ops(&solution.ops, &format!("../outputs/{}.isl", test_id))
+    }
 }

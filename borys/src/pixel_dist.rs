@@ -36,6 +36,8 @@ pub fn get_pixel_distance(my: &Array2D<Color>, expected: &Array2D<Color>) -> f64
     get_pixel_distance_range(my, expected, 0..my.len(), 0..my[0].len())
 }
 
+pub const PIXEL_DIST_COEF: f64 = 0.005;
+
 pub fn get_pixel_distance_range(
     my: &Array2D<Color>,
     expected: &Array2D<Color>,
@@ -48,7 +50,7 @@ pub fn get_pixel_distance_range(
             res += my[i][j].dist(&expected[i][j]);
         }
     }
-    res * 0.005
+    res * PIXEL_DIST_COEF
 }
 
 pub fn get_pixel_distance_range_one_color(

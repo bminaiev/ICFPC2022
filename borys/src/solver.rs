@@ -26,7 +26,7 @@ enum BestWay {
     SolveRec,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct SolutionRect {
     pub from: Point,
     pub to: Point,

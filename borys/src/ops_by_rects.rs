@@ -1,6 +1,6 @@
 use algo_lib::collections::array_2d::Array2D;
 
-use crate::{color_corner::color_corner, op::Op, solver::SolutionRect};
+use crate::{color_corner::color_corner, op::Op, solver::SolutionRect, utils::p, Point};
 
 pub fn gen_ops_by_solution_rects(
     rects: &[SolutionRect],
@@ -54,5 +54,24 @@ pub fn gen_ops_by_solution_rects(
         cur_whole_id = to_color.cur_whole_id;
     }
 
+    res
+}
+
+pub fn gen_rects_by_ops(ops: &[Op], n: usize, m: usize) -> Vec<SolutionRect> {
+    let mut res = vec![];
+    let mut last_point = Point::ZERO;
+    for op in ops.iter() {
+        match op {
+            Op::CutPoint(_, p) => last_point = *p,
+            Op::Color(_, color) => res.push(SolutionRect {
+                from: last_point,
+                to: p(n, m),
+                color: *color,
+            }),
+            Op::CutY(_, y) => last_point = Point::new(0, *y),
+            Op::CutX(_, x) => last_point = Point::new(*x, 0),
+            Op::Merge(_, _) => {}
+        }
+    }
     res
 }
