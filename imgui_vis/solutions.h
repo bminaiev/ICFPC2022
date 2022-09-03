@@ -1080,14 +1080,16 @@ void solveOpt() {
       total -= cost[i][j];
       cost[i][j] = 0;
     };
-    cerr << "total = " << total << endl;
+    auto [res, idx] = initialMerge();
+    cerr << "total = " << res.score + total << endl;
     for (auto& block : coloredBlocks) {
       if ((block.r1 > 0 || block.c1 > 0) && top[block.c1][block.r1] != make_pair(block.c1, block.r1)) {
         AddCorner(block.c1, block.r1, (int) corners.size());
       }
     }
-    cerr << "total = " << total << endl;
+    cerr << "total = " << res.score + total << endl;
 //    for (int i = 0; i < N; i += 40) for (int j = 0; j < N; j += 40) if (i > 0 || j > 0) AddCorner(i, j);
+    #define wlog(operationType) msg.clear() << "it " << it << " [" << operationType << "] cnt: " << corners.size() << ", total: " << res.score + total / 1000 << ", time: " << GetTime() << + "s\n"
     for (int it = 0; it < 1000000; it++) {
       if (GetTime() > optSeconds || !optRunning) {
         break;
@@ -1100,7 +1102,7 @@ void solveOpt() {
         RemoveCorner(i, j);
         AddCorner(i, j, -1);
         if (total <= old_total) {
-          msg.clear() << "it = " << it << ", SWP, cnt = " << corners.size() << ", total = " << total / 1000 << ", time = " << GetTime() << + "s\n";
+          wlog("SWP");
         } else {
           RemoveCorner(i, j);
           AddCorner(i, j, id);
@@ -1144,7 +1146,7 @@ void solveOpt() {
           RemoveCorner(i, j);
           AddCorner(ni, nj, id);
           if (total <= old_total) {
-            msg.clear() << "it = " << it << ", MOV, cnt = " << corners.size() << ", total = " << total / 1000 << ", time = " << GetTime() << + "s\n";
+            wlog("MOV");
             i = ni;
             j = nj;
           } else {
@@ -1164,7 +1166,7 @@ void solveOpt() {
         auto old_total = total;
         AddCorner(i, j, -1);
         if (total <= old_total) {
-          msg.clear() << "it = " << it << ", ADD, cnt = " << corners.size() << ", total = " << total / 1000 << ", time = " << GetTime() << + "s\n";
+          wlog("ADD");
         } else {
           RemoveCorner(i, j);
         }
@@ -1175,7 +1177,7 @@ void solveOpt() {
         auto old_total = total;
         RemoveCorner(i, j);
         if (total <= old_total) {
-          msg.clear() << "it = " << it << ", REM, cnt = " << corners.size() << ", total = " << total / 1000 << ", time = " << GetTime() << + "s\n";
+          wlog("REM");
         } else {
           AddCorner(i, j, id);
         }
@@ -1201,7 +1203,6 @@ void solveOpt() {
       cand2    += llround(1.0 * n / max(x, m - x));
       return cand1 < cand2;
     };
-    auto [res, idx] = initialMerge();
     for (int it = 0; it < (int) rects.size(); it++) {
       int i = it;
       int xa = rects[i].first.first;

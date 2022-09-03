@@ -5,10 +5,6 @@ struct Log {
 
     Log() { s = stringstream(); }
     Log& clear() { s = stringstream(); return *this; }
-    
-    const char* c_str() const {
-        return s.str().c_str();
-    }
 };
 
 template <class T>

@@ -104,6 +104,7 @@ void postprocess(Solution& res) {
     if (myScores[currentTestId] == -1 || res.score < myScores[currentTestId]) {
         string fname = "../solutions/" + to_string(currentTestId) + ".txt";
         myScores[currentTestId] = res.score;
+        coloredBlocks = painter.coloredBlocks;
         ofstream ofs(fname);
         for (const auto& i : res.ins) {
             ofs << i.text() << endl;
@@ -435,7 +436,7 @@ void optsWindow() {
 
             ImGui::InputInt("TL, sec", &optSeconds, 1, 10);
 
-            ImGui::Text("%s\n%s", msg.c_str(), requestResult.c_str());
+            ImGui::Text("%s\n%s", msg.s.str().c_str(), requestResult.c_str());
         }
     }
     ImGui::End();
