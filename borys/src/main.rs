@@ -25,18 +25,19 @@ mod readings;
 mod rect_id;
 mod savings;
 mod solver;
+mod test_case;
 mod utils;
 
 type Point = PointT<i32>;
 
 fn solve_case(test_id: usize, block_size: usize, use_third_layer: bool) {
-    let expected = read_case(test_id);
-    let solution = solve_one(&expected, block_size, use_third_layer);
+    let test_case = read_case(test_id);
+    let solution = solve_one(&test_case, block_size, use_third_layer);
     save_solution(test_id, &solution);
 }
 
 fn show_case(test_id: usize) {
-    let expected = read_case(test_id);
+    let expected = read_case(test_id).expected;
     let n = expected.len();
     let m = expected[0].len();
     let submit = read_submit(&format!("../outputs/{}.isl", test_id));
@@ -66,8 +67,10 @@ fn solve_fast(task_id: usize) {
 fn local_optimize(test_id: usize) {
     let mut rnd = Random::new_time_seed();
     let start = Instant::now();
-    let expected = read_case(test_id);
+    let test_case = read_case(test_id);
     let ops = read_submit(&format!("../outputs/{}.isl", test_id));
+    assert!(test_case.regions.len() == 1);
+    let expected = &test_case.expected;
     let rects = gen_rects_by_ops(&ops, expected.len(), expected[0].len());
     let new_sol = optimize_positions(&expected, &rects, &ops, &mut rnd);
     save_solution(test_id, &new_sol);
@@ -79,7 +82,7 @@ fn main() {
     const TEST_ID: usize = 25;
     loop {
         dbg!("NEXT ITERATION!!!");
-        for test_id in 1..=25 {
+        for test_id in 25..=25 {
             dbg!(test_id);
             local_optimize(test_id);
         }

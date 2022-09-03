@@ -14,6 +14,7 @@ use crate::{
     pixel_dist::{
         estimate_pixel_distance_range_one_color, get_pixel_distance_range_one_color, EstimateResult,
     },
+    test_case::TestCase,
     utils::p,
     Point,
 };
@@ -308,11 +309,9 @@ fn gen_coords(block_size: usize, max_value: usize) -> Vec<usize> {
     res
 }
 
-pub fn solve_one(
-    expected: &Array2D<Color>,
-    block_size: usize,
-    use_third_layer: bool,
-) -> SolutionRes {
+pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool) -> SolutionRes {
+    let expected = &test_case.expected;
+    assert!(test_case.regions.len() == 1);
     let color_picker = ColorPicker::new(&expected);
     let n = expected.len();
     let m = expected[0].len();

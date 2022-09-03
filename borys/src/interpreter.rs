@@ -10,30 +10,13 @@ use crate::{
     consts::{COLOR_COST, LINE_CUT_COST, MERGE_COST, POINT_CUT_COST},
     op::Op,
     rect_id::{rect_id_from_usize, rect_id_get_start, rect_id_sub_key},
+    test_case::Rect,
     Point,
 };
 
 pub struct ApplyOpsResult {
     pub picture: Array2D<Color>,
     pub only_ops_cost: f64,
-}
-
-#[derive(Clone, Copy)]
-struct Rect {
-    from: Point,
-    to: Point,
-}
-
-impl Rect {
-    pub fn new(from: Point, to: Point) -> Self {
-        Self { from, to }
-    }
-
-    pub fn size(&self) -> f64 {
-        let dx = (self.to.x - self.from.x) as f64;
-        let dy = (self.to.y - self.from.y) as f64;
-        dx * dy
-    }
 }
 
 pub fn apply_ops(ops: &[Op], n: usize, m: usize) -> ApplyOpsResult {

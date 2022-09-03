@@ -1,6 +1,12 @@
 use algo_lib::{collections::array_2d::Array2D, dbg, io::input::Input, strings::utils::vec2str};
 
-use crate::{color::Color, op::Op, rect_id::RectId, Point};
+use crate::{
+    color::Color,
+    op::Op,
+    rect_id::{rect_id_from_usize, RectId},
+    test_case::{Rect, Region, TestCase},
+    Point,
+};
 
 fn remove_prefix(s: Vec<u8>, c: char) -> Vec<u8> {
     assert!(s[0] == c as u8);
@@ -85,18 +91,37 @@ pub fn read_submit(path: &str) -> Vec<Op> {
     res
 }
 
-pub fn read_case(test_id: usize) -> Array2D<Color> {
+pub fn read_case(test_id: usize) -> TestCase {
     let mut input = Input::new_file(format!("../inputs/{}.txt", test_id));
     let m = input.usize();
     let n = input.usize();
     let mut expected = Array2D::new(Color::default(), n, m);
+
+    let read_color = |input: &mut Input| -> Color {
+        let mut res = Color::default();
+        for i in 0..4 {
+            res.0[i] = input.u32() as u8;
+        }
+        res
+    };
+
     for i in 0..m {
         for j in 0..n {
-            for k in 0..4 {
-                // expected[j][m - i - 1].0[k] = input.u32() as u8;
-                expected[j][i].0[k] = input.u32() as u8;
-            }
+            expected[j][i] = read_color(&mut input);
         }
     }
-    expected
+    let mut regions = vec![];
+    let n_regions = input.usize();
+    for _ in 0..n_regions {
+        let id = rect_id_from_usize(input.usize());
+        let from = Point::new(input.read(), input.read());
+        let to = Point::new(input.read(), input.read());
+        let color = read_color(&mut input);
+        regions.push(Region {
+            name: id,
+            rect: Rect::new(from, to),
+            color,
+        });
+    }
+    TestCase { expected, regions }
 }
