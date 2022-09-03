@@ -1111,7 +1111,7 @@ void solveOpt() {
     }
     cerr << "total = " << res.score + total << endl;
 //    for (int i = 0; i < N; i += 40) for (int j = 0; j < N; j += 40) if (i > 0 || j > 0) AddCorner(i, j);
-    #define wlog(operationType) msg.clear() << "it " << it << " [" << operationType << "] cnt: " << corners.size() << ", total: " << res.score + total / 1000 << ", time: " << GetTime() << + "s\n"
+    #define wlog(operationType) msg.clear() << "it " << it << " [" << operationType << "] cnt: " << corners.size() << ", total: " << res.score + total / 1000 << " (" << res.score << " merge), time: " << GetTime() << + "s\n"
     for (int it = 0; it < 1000000; it++) {
       if (GetTime() > optSeconds || !optRunning) {
         break;

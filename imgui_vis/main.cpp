@@ -234,7 +234,25 @@ void fileWindow() {
             }
         }
 
-        ImGui::SameLine(200);
+        ImGui::SameLine(190);
+        if (ImGui::Button("Upload Better")) {
+            for (const auto & entry : fs::directory_iterator(inputsPath)) {
+                string s = entry.path().string();
+                size_t i = 0;
+                while (i < s.size() && (s[i] < '0' || s[i] > '9')) i++;
+                if (i >= s.size()) continue;
+                size_t j = i;
+                while (s[j] >= '0' && s[j] <= '9') j++;
+                int idx;
+                sscanf(s.substr(i, j).c_str(), "%d", &idx);
+                if ((idx - 1 >= (int)testResults.size() || get<1>(testResults[idx - 1]) > myScores[idx]) && myScores[idx] != -1) {
+                    cerr << "Submitting " << idx << endl;
+                    apiSubmit(idx);
+                }
+            }
+        }
+
+        ImGui::SameLine(300);
         if (ImGui::Button("Read Local")) {
             for (const auto & entry : fs::directory_iterator(inputsPath)) {
                 string s = entry.path().string();
@@ -315,7 +333,11 @@ void fileWindow() {
                     requestResult = "";
                 }
                 ImGui::TableNextColumn();
-                ImGui::Text("%d", myScores[tests[idx].first]);                
+                if (idx < testResults.size() && myScores[tests[idx].first] < get<1>(testResults[idx])) {
+                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "%d", myScores[tests[idx].first]);
+                } else {
+                    ImGui::Text("%d", myScores[tests[idx].first]);
+                }
                 ImGui::SameLine(55);
                 bName = "Sub " + to_string(tid);
                 if (ImGui::Button(bName.c_str())) {
@@ -325,7 +347,11 @@ void fileWindow() {
                 if (idx < testResults.size()) {
                     assert(get<0>(testResults[idx]) == tests[idx].first);
                     ImGui::TableNextColumn();
-                    ImGui::Text("%d", get<1>(testResults[idx]));
+                    if (myScores[tests[idx].first] > get<1>(testResults[idx])) {
+                        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "%d", get<1>(testResults[idx]));
+                    } else {
+                        ImGui::Text("%d", get<1>(testResults[idx]));
+                    }
                     ImGui::SameLine(55);
                     bName = "DL " + to_string(tid);
                     if (ImGui::Button(bName.c_str())) {
@@ -427,7 +453,7 @@ void optsWindow() {
                     solveThread.detach();
                 }
             }
-            ImGui::SameLine(200);
+            ImGui::SameLine(190);
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.64f, 0.0f, 0.0f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.1f, 0.1f, 1.0f));
             if (ImGui::Button("Stop Opt")) {
