@@ -828,6 +828,138 @@ void solveDP() {
     postprocess(res);
 }
 
+unordered_map<ll, double> mg;
+double f[410][410];
+
+double colorCost(int a, int b) {
+    return round(5.0 * N * M / (a * b));
+}
+
+double mergeCost(int S, int a, int b) {
+    return round(1.0 * N * M / (S * max(a, b)));
+}
+
+double opsCost(int r, int c) {
+    if (r == 0 && c == 0) return 5.0;
+    if (r == 0) return 7.0 + colorCost(N, M - c) + mergeCost(N, c, M - c);
+    if (c == 0) return 7.0 + colorCost(N - r, M) + mergeCost(M, r, N - r);
+    return 10.0 + colorCost(N - r, M - c) + mergeCost(M - c, r, N - r) + mergeCost(c, r, N - r) + mergeCost(N, c, M - c);
+    // can check second order lul
+}
+
+double getG(int r1, int c1, int r2, int c2) {
+    if (r1 == N || c1 == M) return 0;
+    ll key = ((r1 * M + c1) * ll(N) + r2) * ll(M) + c2;
+    if (mg.find(key) != mg.end()) {
+        return mg[key];
+    }
+
+    double res = 1e9;
+    double oc = opsCost(r1, c1);
+    if (r2 == N) {
+        Color sum;
+        for (int q = 0; q < 4; q++) sum[q] = 0;
+        int total = 0;
+        
+        for (int r = r1; r < r2; r++) {
+            for (int c = c1; c < c2; c++) {
+                for (int q = 0; q < 4; q++) sum[q] += colors[r][c][q];
+                total++;
+            }
+
+            if ((r + 1) % S == 0) {
+                Color avg;
+                for (int q = 0; q < 4; q++)
+                    avg[q] = sum[q] / total;
+                double colorPenalty = 0;
+                double cur = oc + getG(r + 1, c1, N, c2);
+                for (int qr = r1; qr <= r; qr++)
+                    for (int c = c1; c < c2; c++) {
+                        double ssq = 0;
+                        for (int q = 0; q < 4; q++)
+                            ssq += sqr(avg[q] - colors[qr][c][q]);
+                        colorPenalty += sqrt(ssq);
+                        // if (cur + colorPenalty * 0.005 > res) {
+                        //     break;
+                        // }
+                    }
+                cur += colorPenalty * 0.005;
+                if (cur < res) {
+                    res = cur;
+                    // store answer
+                }
+            }
+        }
+    }
+    if (c2 == M) {
+        Color sum;
+        for (int q = 0; q < 4; q++) sum[q] = 0;
+        int total = 0;
+
+        for (int c = c1; c < c2; c++) {
+            for (int r = r1; r < r2; r++) {
+                for (int q = 0; q < 4; q++) sum[q] += colors[r][c][q];
+                total++;
+            }
+
+            if ((c + 1) % S == 0) {
+                Color avg;
+                for (int q = 0; q < 4; q++)
+                    avg[q] = sum[q] / total;
+                double colorPenalty = 0;
+                double cur = oc + getG(r1, c + 1, r2, M);
+                for (int r = r1; r < r2; r++)
+                    for (int qc = c1; qc <= c; qc++) {
+                        double ssq = 0;
+                        for (int q = 0; q < 4; q++)
+                            ssq += sqr(avg[q] - colors[r][qc][q]);
+                        colorPenalty += sqrt(ssq);
+                        // if (cur + colorPenalty * 0.005 > res) {
+                        //     break;
+                        // }
+                    }
+                cur += colorPenalty * 0.005;
+                if (cur < res) {
+                    res = cur;
+                    // store answer
+                }
+            }
+        }
+    }
+    
+
+    return mg[key] = res;
+}
+
+void solveDP2() {
+    if (N % S != 0) {
+        cerr << "N % S != 0\n";
+        return;
+    }
+    auto start_time = Time::now();
+    auto GetTime = [&]() {
+      auto cur_time = Time::now();
+      std::chrono::duration<double> fs = cur_time - start_time;
+      return std::chrono::duration_cast<chrono_ms>(fs).count() * 0.001;
+    };
+    mg.clear();
+    memset(f, 0, sizeof(f));
+    for (int r = N - S; r >= 0; r -= S) {
+        msg = "Running on row " + to_string(r) + "...\n";
+        cerr << r << " " << GetTime() << "s\n";
+        for (int c = M - S; c >= 0; c -= S) {
+            f[r][c] = 1e9;
+            for (int c2 = c + S; c2 <= M; c2 += S) {
+                f[r][c] = min(f[r][c], f[r][c2] + getG(r, c, N, c2));
+            }
+            for (int r2 = r + S; r2 <= N; r2 += S) {
+                f[r][c] = min(f[r][c], f[r2][c] + getG(r, c, r2, M));
+            }
+        }
+    }
+    cerr << "Result: " << f[0][0] << endl;
+}
+
 int dp[20100][20100];
 int aux[201][201];
 
@@ -1453,7 +1585,9 @@ void optsWindow() {
     if (ImGui::Begin("Solution")) {
         ImGui::Text("Current test: %d", currentTestId);
         ImGui::Checkbox("SplitX", &useSplitX);
+        ImGui::SameLine(80);
         ImGui::Checkbox("SplitY", &useSplitY);
+        ImGui::SameLine(160);
         ImGui::Checkbox("SplitPoint", &useSplitPoint);
         ImGui::DragInt("DP Step", &S, 1, 2, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
         ImGui::DragInt("Direction", &mode, 1, 0, 3, "D=%d", ImGuiSliderFlags_AlwaysClamp);
@@ -1463,6 +1597,14 @@ void optsWindow() {
             thread solveThread(solveDP);
             solveThread.detach();
         }
+        ImGui::SameLine(80);
+        if (ImGui::Button("Solve DP2")) {
+            // cerr << "Spawn thread!\n";
+            // thread solveThread(solveDP2);
+            // solveThread.detach();
+            solveDP2();
+        }
+        
         if (ImGui::Button("Solve Gena")) {
             if (0) {
                 cerr << "Run in main thread!\n";
@@ -1473,7 +1615,7 @@ void optsWindow() {
                 solveThread.detach();
             }
         }
-
+        ImGui::SameLine(100);
         if (ImGui::Button("Solve Opt")) {
             if (0) {
                 cerr << "Run in main thread!\n";
