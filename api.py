@@ -1,4 +1,6 @@
 import requests, sys, shutil, json
+from collections import defaultdict
+from termcolor import colored
 
 headers = {
     'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1haWxyb21rYUBnbWFpbC5jb20iLCJleHAiOjE2NjIyOTc1MzIsIm9yaWdfaWF0IjoxNjYyMjExMTMyfQ.Uz68RJBnRdKHnJHYGUwzYxYccg-wqNDPZITGSUhj1C8'
@@ -38,16 +40,83 @@ def download(task_id, fname):
         fout.write(json.dumps(js))
 
 
+def print_ultra_cool_tests(test_results):
+    top_list = defaultdict(list)
+    my, opp = {}, {}
+    for score, test_id, team in test_results:
+        if len(top_list[test_id]) == 5:
+            continue
+
+        for p in top_list[test_id]:
+            if p[1] == team:
+                break
+        else:
+            if team != 'RGBTeam-local' or all(x[1] != 'RGBTeam' for x in top_list[test_id]):
+                top_list[test_id].append((score, team))
+
+        my[test_id] = 10 ** 10
+        opp[test_id] = 10 ** 10
+
+    for score, test_id, team in test_results[::-1]:
+        if team.startswith('RGBTeam'):
+            my[test_id] = score
+        else:
+            opp[test_id] = score
+
+    cur = 1
+    cols = 6
+    col_width = 30
+    def pad(text):
+        if len(text) > col_width - 2:
+            text = text[:20] + "..."
+        text = " " * ((col_width - len(text)) // 2) + text
+        text += " " * (col_width - len(text))
+        return text
+    while cur <= max(top_list.keys()):
+        print("-" * (col_width * cols + cols + 1))
+        sys.stdout.write("|")
+        for j in range(cols):
+            if top_list[cur+j] and top_list[cur+j][0][1].startswith('RGBTeam'):
+                sys.stdout.write(colored(pad(f"Test {cur+j} (Adv. {my[cur+j] - opp[cur+j]})"), 'green'))
+            else:
+                sys.stdout.write(colored(pad(f"Test {cur+j} (Loss {my[cur+j] - opp[cur+j]})"), 'red'))
+            sys.stdout.write("|")
+        print()
+        print((" " * col_width).join("|" * (cols + 1)))
+
+        for p in range(5):
+            sys.stdout.write("|")
+            for j in range(cols):
+                tl = top_list[cur + j]
+                if p >= len(tl):
+                    sys.stdout.write(" " * col_width)
+                else:
+                    if tl[p][1] == 'RGBTeam':
+                        sys.stdout.write(colored(pad(f"{tl[p][0]} {tl[p][1]}"), 'yellow'))
+                    elif tl[p][1] == 'RGBTeam-local':
+                        sys.stdout.write(colored(pad(f"{tl[p][0]} {tl[p][1]}"), 'cyan'))
+                    else:
+                        sys.stdout.write(pad(f"{tl[p][0]} {tl[p][1]}"))
+                sys.stdout.write("|")
+            print()
+
+        cur += cols
+    print("-" * (col_width * cols + cols + 1))
+
+
+
 def save_standings():
     mytest = {}                
     rs = requests.get(submissions_url, headers=headers)
     js = rs.json()
+    test_results = []
     for sub in js['submissions']:
         if sub['status'] == 'SUCCEEDED':
             if sub['problem_id'] not in mytest:
                 mytest[sub['problem_id']] = 10 ** 10
 
             mytest[sub['problem_id']] = min(mytest[sub['problem_id']], sub['score'])
+            test_results.append((sub['score'], sub['problem_id'], 'RGBTeam-local'))
 
     myresult = sum(mytest.values())
 
@@ -87,6 +156,7 @@ def save_standings():
             if team['team_name'] == 'Unagi':
                 mintestU[tid] = min(mintestU[tid], test['min_cost'])
 
+            test_results.append((test['min_cost'], tid, team['team_name']))
             # if tid == 1:
             #     print(test['min_cost'])
 
@@ -104,6 +174,9 @@ def save_standings():
                 mytest[tid] - mintest[tid], "loss" if mytest[tid] > mintest[tid] else "win"))
             min_total += mintest[tid]
         print(f"Sum of best results: {min_total}, Our results: {myresult}, Loss: {myresult - min_total}")
+
+    test_results.sort()
+    print_ultra_cool_tests(test_results)
 
 
 if __name__ == "__main__":
