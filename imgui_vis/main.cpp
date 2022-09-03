@@ -81,12 +81,13 @@ Input readInput(const string& fname) {
     return res;
 }
 
-void readInputAndStoreAsGlobal(const string& fname) {
+Input readInputAndStoreAsGlobal(const string& fname) {
     Input i = readInput(fname);
     N = i.N;
     M = i.M;
     colors = i.colors;
     rawBlocks = i.rawBlocks;
+    return i;
 }
 
 void postprocess(Solution& res) {
@@ -116,7 +117,7 @@ void postprocess(Solution& res) {
     }
 }
 
-Solution loadSolution(const Input& in, const string& filepath) {
+pair<Solution, vector<Block>> loadSolution(const Input& in, const string& filepath) {
     Solution res;
     res.score = -1;
     ifstream infile(filepath);
@@ -135,7 +136,7 @@ Solution loadSolution(const Input& in, const string& filepath) {
             ss >> id;
             ss >> token;
             ss >> val;
-            // cerr << cs << ": " << id << " " << token << " " << val << "(" << in.N << " " << in.M << ")" << endl;
+            // cerr << cs << ": " << id << " " << token << " " << val << "\n"; // << "(" << in.N << " " << in.M << ")" << endl;
             if (token == "X") {
                 res.ins.push_back(SplitXIns(id, val));
             } else if (token == "Y") {
@@ -158,7 +159,7 @@ Solution loadSolution(const Input& in, const string& filepath) {
             res.ins.push_back(ColorIns(id, c));
         } else {
             cerr << "Unsupported instruction: " << cs << " in file " << filepath << "\n";
-            return res;
+            return {res, {}};
         }
     }
     Painter p(in.N, in.M, in.rawBlocks);
@@ -166,11 +167,11 @@ Solution loadSolution(const Input& in, const string& filepath) {
         if (!p.doInstruction(ins)) {
             cerr << "Bad instruction in " + s + ": " + ins.text() + "\n";
             res.score = -100;
-            return res;
+            return {res, {}};
         }
     }
     res.score = p.totalScore(in.colors);
-    return res;
+    return {res, p.coloredBlocks};
 }
 
 void updateStandingsAndMyScores(bool useApiUpdate) {
@@ -205,7 +206,7 @@ void downloadSolution(int testId) {
     N = in.N;
     M = in.M;
     colors = in.colors;
-    Solution sol = loadSolution(in, solutionsPath + to_string(currentTestId) + ".txt");
+    auto [sol, _] = loadSolution(in, solutionsPath + to_string(currentTestId) + ".txt");
     postprocess(sol);
     cerr << "downloaded and loaded sol with score " << sol.score << endl;
 }
@@ -249,7 +250,7 @@ void fileWindow() {
                 
                 Input in = readInput(s);
                 cerr << "read input " << in.N << "x" << in.M << endl;
-                Solution sol = loadSolution(in, solutionsPath + to_string(test_id) + ".txt");
+                auto [sol, _] = loadSolution(in, solutionsPath + to_string(test_id) + ".txt");
                 Painter p(in.N, in.M, in.rawBlocks);
                 for (const auto& ins : sol.ins) {
                     if (!p.doInstruction(ins)) {
@@ -302,8 +303,17 @@ void fileWindow() {
                 string bName = "Load " + to_string(tid);
                 if (ImGui::Button(bName.c_str())) {
                     currentTestId = tests[idx].first;
-                    readInputAndStoreAsGlobal(tests[idx].second);
-                    cerr << "load " << tid << " " << N << " " << M << endl;
+                    Input in = readInputAndStoreAsGlobal(tests[idx].second);
+                    auto [sol, cb] = loadSolution(in, solutionsPath + to_string(currentTestId) + ".txt");
+                    coloredBlocks = cb;
+                    painter = Painter(N, M, rawBlocks);
+                    for (const auto& ins : sol.ins) {
+                        if (!painter.doInstruction(ins)) {
+                            cerr << "!!! Bad instruction in LOADED SOLUTION: " + ins.text() << endl;
+                            std::terminate();
+                        }
+                    }
+                    msg.clear() << "Loaded solution, score " << sol.score << ", " << cb.size() << " colored rects found\n";
                     requestResult = "";
                 }
                 ImGui::TableNextColumn();

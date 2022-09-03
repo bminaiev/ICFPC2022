@@ -15,9 +15,14 @@ struct RawBlock {
     int r, g, b, a;
 };
 
+struct Block {
+    int r1, c1, r2, c2;
+};
+
 int N, M;
 vector<vector<Color>> colors;
 vector<RawBlock> rawBlocks;
+vector<Block> coloredBlocks;
 bool running;
 
 struct Input {
@@ -105,19 +110,17 @@ struct Solution {
     vector<Instruction> ins;
 };
 
-struct Block {
-    int r1, c1, r2, c2;
-};
-
 struct Painter {
     int lastBlockId;
     int N, M;
     unordered_map<string, Block> blocks;
     vector<vector<Color>> clr;
     double opsScore;
+    vector<Block> coloredBlocks;
 
     Painter() {}
     Painter(int n, int m, const vector<RawBlock>& rb) {
+        cerr << "created painter with " << rb.size() << " initial blocks\n";
         lastBlockId = rb.size() - 1;
         opsScore = 0;
         N = n;
@@ -142,6 +145,7 @@ struct Painter {
         for (int i = b.r1; i < b.r2; i++)
             for (int j = b.c1; j < b.c2; j++)
                 clr[i][j] = c;
+        coloredBlocks.push_back(b);
         return true;
     }
 
@@ -162,18 +166,21 @@ struct Painter {
     }
 
     bool doSplitY(const string& i, int y) {
+        // cerr << "doSplitY " << i << " " << y << endl;
         if (blocks.find(i) == blocks.end())
             return false;
         const auto& b = blocks[i];
+        // cerr << "this block is " << b.r1 << "," << b.c1 << " - " << b.r2 << "," << b.c2 << endl;
         if (y <= b.r1 || y >= b.r2) return false;
         opsScore += round(7.0 * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
         Block down = b;
         Block up = b;
         blocks.erase(blocks.find(i));
-        down.r1 = y;
-        up.r2 = y;
+        down.r2 = y;
+        up.r1 = y;
         blocks[i + ".0"] = down;
         blocks[i + ".1"] = up;
+        // cerr << "new blocks: " << i + ".0" << " " << i + ".1" << endl;
         return true;
     }
 
@@ -189,8 +196,8 @@ struct Painter {
         Block b2 = b;
         Block b3 = b;
         blocks.erase(blocks.find(i));
-        b3.r2 = y; b2.r2 = y;
-        b0.r1 = y; b1.r1 = y;
+        b0.r2 = y; b1.r2 = y;
+        b3.r1 = y; b2.r1 = y;
         b3.c2 = x; b0.c2 = x;
         b1.c1 = x; b2.c1 = x;
         blocks[i + ".0"] = b0;
