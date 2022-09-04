@@ -101,10 +101,10 @@ void postprocess(Solution& res) {
     }
     msg << "Painter score: " << painter.totalScore(colors) << "\n";
     res.score = painter.totalScore(colors);
+    coloredBlocks = painter.coloredBlocks;
     if (myScores[currentTestId] == -1 || res.score < myScores[currentTestId]) {
         string fname = "../solutions/" + to_string(currentTestId) + ".txt";
-        myScores[currentTestId] = res.score;
-        coloredBlocks = painter.coloredBlocks;
+        myScores[currentTestId] = res.score;        
         ofstream ofs(fname);
         for (const auto& i : res.ins) {
             ofs << i.text() << endl;
