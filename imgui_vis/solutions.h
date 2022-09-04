@@ -648,7 +648,7 @@ void solveGena(int S, int mode) {
         }
       }
     }
-    int zzseed = int(GetTime());
+    int zzseed = time(0);
     mt19937 rng(zzseed);
     for (int xa = n - 1; xa >= 0; xa--) {
       auto time_elapsed = GetTime();
@@ -1139,7 +1139,7 @@ void solveOpt() {
       }
       return ForceRecalcTop(i, j);
     };
-    int zzseed = int(GetTime());
+    int zzseed = time(0);
     mt19937 rng(zzseed);
     uniform_real_distribution<double> urd(0, 1);
     auto AddCorner = [&](int i, int j, int where) {
@@ -1255,7 +1255,7 @@ void solveOpt() {
                     RemoveCorner(i, j);
                 }
 
-        if (save.empty()) return;
+        if (save.empty()) return false;
         drawR1 = r1;
         drawR2 = r2;
         drawC1 = c1;
@@ -1273,7 +1273,7 @@ void solveOpt() {
             }
           }
           
-          T = 0.1 * (1 - double(it) / maxIters);
+          T = 0.1 * (1 - double(it) / maxIters) * (1 - double(it) / maxIters);
 
           vector<int> cidsInRegion;
           for (size_t id = 0; id < corners.size(); id++)
@@ -1385,6 +1385,7 @@ void solveOpt() {
             for (auto [c, id] : save)
                 AddCorner(c.first, c.second, id);
         }*/
+        return true;
     };
 
     auto optimizeOneByOne = [&]() {
@@ -1745,8 +1746,8 @@ void solveOpt() {
                 break;
             }
 
-            optimizeHard(r1, c1, r2, c2, hardIters);
-            break;
+            if (optimizeHard(r1, c1, r2, c2, hardIters))
+                break;
         }
     } else if (regionOpt)
         optimizeRegions();

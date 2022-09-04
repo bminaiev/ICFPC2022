@@ -12,7 +12,7 @@ void apiUpdateStandings() {
     #ifdef _WIN32
       char cmd[] = "python ..\\api.py standings";
     #else
-      char cmd[] = "python3 ../api.py standings";
+      char cmd[] = "python3 ../api.py standings > /dev/null";
     #endif
     system(cmd);
 
