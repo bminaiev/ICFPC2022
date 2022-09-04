@@ -20,16 +20,22 @@ struct Block {
     Color color;
 };
 
+struct Costs {
+    double splitLine, splitPoint, color, swap, merge;
+};
+
 int N, M;
-vector<vector<Color>> colors;
+vector<vector<Color>> colors, initialColors;
 vector<RawBlock> rawBlocks;
 vector<Block> coloredBlocks;
+Costs costs;
 bool running;
 
 struct Input {
     int N, M;
-    vector<vector<Color>> colors;
+    vector<vector<Color>> colors, initialColors;
     vector<RawBlock> rawBlocks;
+    Costs costs;
 };
 
 struct Instruction {
@@ -193,7 +199,7 @@ struct Painter {
         if (blocks.find(i) == blocks.end())
             return false;
         const auto& b = blocks[i];
-        opsScore += round(5.0 * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
+        opsScore += round(costs.color * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
         for (int i = b.r1; i < b.r2; i++)
             for (int j = b.c1; j < b.c2; j++)
                 clr[i][j] = c;
@@ -207,7 +213,7 @@ struct Painter {
             return false;
         const auto& b = blocks[i];
         if (x <= b.c1 || x >= b.c2) return false;
-        opsScore += round(7.0 * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
+        opsScore += round(costs.splitLine * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
         Block left = b;
         Block right = b;
         blocks.erase(blocks.find(i));
@@ -225,7 +231,7 @@ struct Painter {
         const auto& b = blocks[i];
         // cerr << "this block is " << b.r1 << "," << b.c1 << " - " << b.r2 << "," << b.c2 << endl;
         if (y <= b.r1 || y >= b.r2) return false;
-        opsScore += round(7.0 * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
+        opsScore += round(costs.splitLine * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
         Block down = b;
         Block up = b;
         blocks.erase(blocks.find(i));
@@ -243,7 +249,7 @@ struct Painter {
         const auto& b = blocks[i];
         if (x <= b.c1 || x >= b.c2) return false;
         if (y <= b.r1 || y >= b.r2) return false;
-        opsScore += round(10.0 * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
+        opsScore += round(costs.splitPoint * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
         Block b0 = b;
         Block b1 = b;
         Block b2 = b;
@@ -269,7 +275,7 @@ struct Painter {
         const auto& bv = blocks[i2];
         // cerr << bu.r1 << "," << bu.c1 << " - " << bu.r2 << "," << bu.c2 << endl;
         // cerr << bv.r1 << "," << bv.c1 << " - " << bv.r2 << "," << bv.c2 << endl;
-        opsScore += round(1.0 * N * M / max((bu.r2 - bu.r1) * (bu.c2 - bu.c1),
+        opsScore += round(costs.merge * N * M / max((bu.r2 - bu.r1) * (bu.c2 - bu.c1),
                                             (bv.r2 - bv.r1) * (bv.c2 - bv.c1)));
         Block nb;
         if (bu.r2 == bv.r1 || bu.r1 == bv.r2) {
@@ -307,8 +313,9 @@ struct Painter {
         return true;
     }
 
-    bool doSwap(const string& i1, const string& i2) {
+    bool doSwap(const string& , const string& ) {
         return false;
+        /*
         if (blocks.find(i1) == blocks.end() || blocks.find(i2) == blocks.end())
             return false;
 
@@ -349,6 +356,7 @@ struct Painter {
         blocks.erase(blocks.find(i2));
         lastBlockId++;
         blocks[to_string(lastBlockId)] = nb;
+        */
         return true;
     }
 
@@ -391,18 +399,22 @@ unordered_map<ll, double> mg;
 double f[410][410];
 
 double colorCost(int a, int b) {
-    return round(5.0 * N * M / (a * b));
+    return round(costs.color * N * M / (a * b));
+}
+
+double splitLineCost(int a, int b) {
+    return round(costs.splitLine * N * M / (a * b));
 }
 
 double mergeCost(int S, int a, int b) {
-    return round(1.0 * N * M / (S * max(a, b)));
+    return round(costs.merge * N * M / (S * max(a, b)));
 }
 
 double opsCost(int r, int c) {
-    if (r == 0 && c == 0) return 5.0;
-    if (r == 0) return 7.0 + colorCost(N, M - c) + mergeCost(N, c, M - c);
-    if (c == 0) return 7.0 + colorCost(N - r, M) + mergeCost(M, r, N - r);
-    return 10.0 + colorCost(N - r, M - c) + mergeCost(M - c, r, N - r) + mergeCost(c, r, N - r) + mergeCost(N, c, M - c);
+    if (r == 0 && c == 0) return costs.color;
+    if (r == 0) return costs.splitLine + colorCost(N, M - c) + mergeCost(N, c, M - c);
+    if (c == 0) return costs.splitLine + colorCost(N - r, M) + mergeCost(M, r, N - r);
+    return costs.splitPoint + colorCost(N - r, M - c) + mergeCost(M - c, r, N - r) + mergeCost(c, r, N - r) + mergeCost(N, c, M - c);
     // can check second order lul
 }
 
@@ -526,11 +538,70 @@ int mode = 0;
 
 vector<pair<int, int>> dp_corners;
 
+pair<Solution, int> getTwoStepMerge(int blocksPerSide, int blockSize, int lines) {
+    Solution res;
+    int bid = 0;
+    int nextBlockId = rawBlocks.size();
+    res.score = 0;
+    vector<int> vertBlocks;
+    for (int i = 0; i < lines; i++) {
+        int prevBlockId = bid;
+        bid++;
+        for (int j = 1; j < blocksPerSide; j++) {
+            res.ins.push_back(MergeIns(to_string(prevBlockId), to_string(bid)));
+            res.score += mergeCost(blockSize, blockSize * j, blockSize);
+            prevBlockId = nextBlockId;
+            nextBlockId++;
+            bid++;
+        }
+        vertBlocks.push_back(prevBlockId);
+    }
+    int prevBlockId = vertBlocks[0];
+    for (size_t i = 1; i < vertBlocks.size(); i++) {
+        res.ins.push_back(MergeIns(to_string(prevBlockId), to_string(vertBlocks[i])));
+        res.score += mergeCost(N, blockSize * i, blockSize);
+        prevBlockId = nextBlockId;
+        nextBlockId++;
+    }
+
+    string curId = to_string(nextBlockId - 1);
+    vector<string> horIds;
+    for (int i = 1; i < blocksPerSide; i++) {
+        res.ins.push_back(SplitYIns(curId, i * N / blocksPerSide));
+        res.score += splitLineCost(lines * blockSize, (blocksPerSide - i + 1) * blockSize);
+        horIds.push_back(curId + ".0");
+        curId += ".1";
+    }
+    horIds.push_back(curId);
+    assert((int)horIds.size() == blocksPerSide);
+ 
+    for (int i = lines; i < blocksPerSide; i++) {
+        for (int j = 0; j < blocksPerSide; j++) {
+            res.ins.push_back(MergeIns(horIds[j], to_string(bid)));
+            res.score += mergeCost(blockSize, blockSize * i, blockSize);
+            horIds[j] = to_string(nextBlockId);
+            nextBlockId++;
+            bid++;
+        }
+    }
+
+    string prevHorId = horIds[0];
+    for (int i = 1; i < blocksPerSide; i++) {
+        res.ins.push_back(MergeIns(horIds[i], prevHorId));
+        res.score += mergeCost(N, blockSize * i, blockSize);
+        prevHorId = to_string(nextBlockId);
+        nextBlockId++;
+    }
+
+    return {res, nextBlockId - 1};
+}
+
 pair<Solution, int> initialMerge() {
     Solution res;
     int blocksPerSide = round(sqrt(rawBlocks.size()));
     assert(N == M);
     int blockSize = N / blocksPerSide;
+
     int bid = 0;
     int nextBlockId = rawBlocks.size();
     res.score = 0;
@@ -546,9 +617,7 @@ pair<Solution, int> initialMerge() {
             bid++;
         }
         vertBlocks.push_back(prevBlockId);
-        // cerr << prevBlockId << " ";
     }
-    cerr << "\n";
     int prevBlockId = vertBlocks[0];
     for (int i = 1; i < blocksPerSide; i++) {
         res.ins.push_back(MergeIns(to_string(prevBlockId), to_string(vertBlocks[i])));
@@ -556,7 +625,38 @@ pair<Solution, int> initialMerge() {
         prevBlockId = nextBlockId;
         nextBlockId++;
     }
+
+    for (int lines = 1; lines < blocksPerSide; lines++) {
+        auto cur = getTwoStepMerge(blocksPerSide, blockSize, lines);
+        if (cur.first.score < res.score) {
+            cerr << "two-step-merge better: " << res.score << " -> " << cur.first.score << endl;
+            res = cur.first;
+            nextBlockId = cur.second + 1;
+        }
+    }
+
     return {res, nextBlockId - 1};
+}
+
+int PaintCost(int x, int y) {
+  assert(x > 0 && y > 0);
+  if (x == N && y == M) {
+    return costs.color;
+  }
+  if (x == N) {
+    return costs.splitLine + llround(costs.color * M / y) + llround(costs.merge * M / max(y, M - y));
+  }
+  if (y == M) {
+    return costs.splitLine + llround(costs.color * N / x) + llround(costs.merge * N / max(x, N - x));
+  }
+  int ret = costs.splitPoint + llround(costs.color * (N * M) / (x * y));
+  int cand1 = llround(costs.merge * (N * M) / (max(x, N - x) * y));
+  cand1    += llround(costs.merge * (N * M) / (max(x, N - x) * (M - y)));
+  cand1    += llround(costs.merge * M / max(y, M - y));
+  int cand2 = llround(costs.merge * (N * M) / (x * max(y, M - y)));
+  cand2    += llround(costs.merge * (N * M) / ((N - x) * max(y, M - y)));
+  cand2    += llround(costs.merge * N / max(x, M - x));
+  return ret + min(cand1, cand2);
 }
 
 void solveGena(int S, int mode) {
@@ -619,26 +719,7 @@ void solveGena(int S, int mode) {
     for (int i = 0; i <= MAX_D; i++) {
       SQRT[i] = sqrt(i);
     }
-    auto PaintCost = [&](int x, int y) -> int {
-      assert(x > 0 && y > 0);
-      if (x == n && y == m) {
-        return 5;
-      }
-      if (x == n) {
-        return 7 + llround(5.0 * m / y) + llround(1.0 * m / max(y, m - y));
-      }
-      if (y == m) {
-        return 7 + llround(5.0 * n / x) + llround(1.0 * n / max(x, n - x));
-      }
-      int ret = 10 + llround(5.0 * (n * m) / (x * y));
-      int cand1 = llround(1.0 * (n * m) / (max(x, n - x) * y));
-      cand1    += llround(1.0 * (n * m) / (max(x, n - x) * (m - y)));
-      cand1    += llround(1.0 * m / max(y, m - y));
-      int cand2 = llround(1.0 * (n * m) / (x * max(y, m - y)));
-      cand2    += llround(1.0 * (n * m) / ((n - x) * max(y, m - y)));
-      cand2    += llround(1.0 * n / max(x, m - x));
-      return ret + min(cand1, cand2);
-    };
+    
     {
       assert(N == M);
       int tmp = 0;
@@ -783,12 +864,12 @@ void solveGena(int S, int mode) {
     }
     assert((int) que.size() == rect_cnt);
     auto Compare = [&](int x, int y) {
-      int cand1 = llround(1.0 * (n * m) / (max(x, n - x) * y));
-      cand1    += llround(1.0 * (n * m) / (max(x, n - x) * (m - y)));
-      cand1    += llround(1.0 * m / max(y, m - y));
-      int cand2 = llround(1.0 * (n * m) / (x * max(y, m - y)));
-      cand2    += llround(1.0 * (n * m) / ((n - x) * max(y, m - y)));
-      cand2    += llround(1.0 * n / max(x, m - x));
+      int cand1 = llround(costs.merge * (n * m) / (max(x, n - x) * y));
+      cand1    += llround(costs.merge * (n * m) / (max(x, n - x) * (m - y)));
+      cand1    += llround(costs.merge * m / max(y, m - y));
+      int cand2 = llround(costs.merge * (n * m) / (x * max(y, m - y)));
+      cand2    += llround(costs.merge * (n * m) / ((n - x) * max(y, m - y)));
+      cand2    += llround(costs.merge * n / max(x, m - x));
       return cand1 < cand2;
     };
     dp_corners.clear();
@@ -830,96 +911,6 @@ void solveGena(int S, int mode) {
           idx += 3;
         }
       }
-/*      if (mode == 1) {
-        if (xb == n && ya == 0) {
-          res.ins.push_back(ColorIns(to_string(idx), paint_into));
-        }
-        if (xb == n && ya > 0) {
-          res.ins.push_back(SplitYIns(to_string(idx), ya * S));
-          res.ins.push_back(ColorIns(to_string(idx) + ".0", paint_into));
-          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
-          idx += 1;
-        }
-        if (xb < n && ya == 0) {
-          res.ins.push_back(SplitXIns(to_string(idx), xb * S));
-          res.ins.push_back(ColorIns(to_string(idx) + ".0", paint_into));
-          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
-          idx += 1;
-        }
-        if (xb < n && ya > 0) {
-          res.ins.push_back(SplitPointIns(to_string(idx), xb * S, ya * S));
-          res.ins.push_back(ColorIns(to_string(idx) + ".0", paint_into));
-          if (Compare(xb, n - ya)) {
-            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".2"));
-            res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
-          } else {
-            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".0"));
-            res.ins.push_back(MergeIns(to_string(idx) + ".2", to_string(idx) + ".1"));
-          }
-          res.ins.push_back(MergeIns(to_string(idx + 1), to_string(idx + 2)));
-          idx += 3;
-        }
-      }
-      if (mode == 2) {
-        if (xa == 0 && yb == n) {
-          res.ins.push_back(ColorIns(to_string(idx), paint_into));
-        }
-        if (xa == 0 && yb < n) {
-          res.ins.push_back(SplitYIns(to_string(idx), yb * S));
-          res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
-          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
-          idx += 1;
-        }
-        if (xa > 0 && yb == n) {
-          res.ins.push_back(SplitXIns(to_string(idx), xa * S));
-          res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
-          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
-          idx += 1;
-        }
-        if (xa > 0 && yb < n) {
-          res.ins.push_back(SplitPointIns(to_string(idx), xa * S, yb * S));
-          res.ins.push_back(ColorIns(to_string(idx) + ".2", paint_into));
-          if (Compare(n - xa, yb)) {
-            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".2"));
-            res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
-          } else {
-            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".0"));
-            res.ins.push_back(MergeIns(to_string(idx) + ".2", to_string(idx) + ".1"));
-          }
-          res.ins.push_back(MergeIns(to_string(idx + 1), to_string(idx + 2)));
-          idx += 3;
-        }
-      }
-      if (mode == 3) {
-        if (xb == n && yb == n) {
-          res.ins.push_back(ColorIns(to_string(idx), paint_into));
-        }
-        if (xb == n && yb < n) {
-          res.ins.push_back(SplitYIns(to_string(idx), yb * S));
-          res.ins.push_back(ColorIns(to_string(idx) + ".1", paint_into));
-          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
-          idx += 1;
-        }
-        if (xb < n && yb == n) {
-          res.ins.push_back(SplitXIns(to_string(idx), xb * S));
-          res.ins.push_back(ColorIns(to_string(idx) + ".0", paint_into));
-          res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
-          idx += 1;
-        }
-        if (xb < n && yb < n) {
-          res.ins.push_back(SplitPointIns(to_string(idx), xb * S, yb * S));
-          res.ins.push_back(ColorIns(to_string(idx) + ".3", paint_into));
-          if (Compare(xb, yb)) {
-            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".2"));
-            res.ins.push_back(MergeIns(to_string(idx) + ".0", to_string(idx) + ".1"));
-          } else {
-            res.ins.push_back(MergeIns(to_string(idx) + ".3", to_string(idx) + ".0"));
-            res.ins.push_back(MergeIns(to_string(idx) + ".2", to_string(idx) + ".1"));
-          }
-          res.ins.push_back(MergeIns(to_string(idx + 1), to_string(idx + 2)));
-          idx += 3;
-        }
-      }*/
     }
 
     for (int rep = 0; rep < mode; rep++) {
@@ -998,26 +989,6 @@ void solveOpt() {
     for (int i = 0; i <= MAX_D; i++) {
       SQRT[i] = sqrt(i);
     }
-    auto PaintCost = [&](int x, int y) -> int {
-      assert(x > 0 && y > 0);
-      if (x == n && y == m) {
-        return 5;
-      }
-      if (x == n) {
-        return 7 + llround(5.0 * m / y) + llround(1.0 * m / max(y, m - y));
-      }
-      if (y == m) {
-        return 7 + llround(5.0 * n / x) + llround(1.0 * n / max(x, n - x));
-      }
-      int ret = 10 + llround(5.0 * (n * m) / (x * y));
-      int cand1 = llround(1.0 * (n * m) / (max(x, n - x) * y));
-      cand1    += llround(1.0 * (n * m) / (max(x, n - x) * (m - y)));
-      cand1    += llround(1.0 * m / max(y, m - y));
-      int cand2 = llround(1.0 * (n * m) / (x * max(y, m - y)));
-      cand2    += llround(1.0 * (n * m) / ((n - x) * max(y, m - y)));
-      cand2    += llround(1.0 * n / max(x, m - x));
-      return ret + min(cand1, cand2);
-    };
     vector<vector<int>> base_cost(N, vector<int>(N));
     for (int i = 0; i < N; i++) {
       for (int j = 0; j < N; j++) {
@@ -1234,7 +1205,8 @@ void solveOpt() {
     cerr << "total = " << res.score + total << endl;
 //    for (int i = 0; i < N; i += 40) for (int j = 0; j < N; j += 40) if (i > 0 || j > 0) AddCorner(i, j);
     int qit = 0;
-    #define wlog(operationType) msg.clear() << "it " << it << "|" << qit << " [" << operationType << "] cnt: " << corners.size() << ", total: " << res.score + total / 1000 << " (" << res.score << " merge), best: " << res.score + best_total / 1000 << ", time: " << GetTime() << + "s\n"
+    #define wlog(operationType) msg.clear() << "it " << it << "|" << qit << " [" << operationType << "] cnt: " << corners.size() \
+            << ", total: " << res.score + total / 1000 << " (" << res.score << "+" << total / 1000.0 << "), best: " << res.score + best_total / 1000 << ", time: " << GetTime() << + "s\n"
     #define setlocal localTries = 100; localI = i; localJ = j;
     int localTries = 0;
     int localI = -1, localJ = -1;
@@ -1256,12 +1228,20 @@ void solveOpt() {
                 }
 
         if (save.empty()) return false;
+
+        for (int i = r1; i < r2; i++)
+            for (int j = c1; j < c2; j++)
+                if (rng() % 10 == 0) {
+                    AddCorner(i, j, -1);
+                }
+
         drawR1 = r1;
         drawR2 = r2;
         drawC1 = c1;
         drawC2 = c2;
         cerr << "optimizeHard " << r1 << "," << c1 << " - " << r2 << "," << c2 << ", " << save.size() << " removed:\n";
         cerr << start_total / 1000.0 << " -> " << total / 1000.0;
+        best_total = 1e9;
         
         for (int it = 0; it < maxIters && optRunning; it++) {
           if (total < best_total) {
@@ -1758,12 +1738,12 @@ void solveOpt() {
       return Priority(r1.first) < Priority(r2.first);
     });*/
     auto Compare = [&](int x, int y) {
-      int cand1 = llround(1.0 * (n * m) / (max(x, n - x) * y));
-      cand1    += llround(1.0 * (n * m) / (max(x, n - x) * (m - y)));
-      cand1    += llround(1.0 * m / max(y, m - y));
-      int cand2 = llround(1.0 * (n * m) / (x * max(y, m - y)));
-      cand2    += llround(1.0 * (n * m) / ((n - x) * max(y, m - y)));
-      cand2    += llround(1.0 * n / max(x, m - x));
+      int cand1 = llround(costs.merge * (n * m) / (max(x, n - x) * y));
+      cand1    += llround(costs.merge * (n * m) / (max(x, n - x) * (m - y)));
+      cand1    += llround(costs.merge * m / max(y, m - y));
+      int cand2 = llround(costs.merge * (n * m) / (x * max(y, m - y)));
+      cand2    += llround(costs.merge * (n * m) / ((n - x) * max(y, m - y)));
+      cand2    += llround(costs.merge * n / max(x, m - x));
       return cand1 < cand2;
     };
     for (int it = 0; it < (int) rects.size(); it++) {

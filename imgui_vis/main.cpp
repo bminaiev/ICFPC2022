@@ -59,7 +59,10 @@ const unordered_map<int, int> sameTests = {
     {32, 9},
     {33, 15},
     {34, 7},
-    {35, 25}
+    {35, 25},
+    {36, 17},
+    {37, 16},
+    {40, 5}
 };
 
 int selected_idx, currentTestId;
@@ -88,6 +91,15 @@ Input readInput(const string& fname) {
         auto& b = res.rawBlocks.back();
         fin >> b.id >> b.blX >> b.blY >> b.trX >> b.trY >> b.r >> b.g >> b.b >> b.a;
     }
+
+    res.initialColors.assign(res.N, vector<Color>(res.M, Color()));
+    for (int i = 0; i < res.N; i++)
+        for (int j = 0; j < res.M; j++)
+            for (int q = 0; q < 4; q++)
+                fin >> res.initialColors[i][j][q];
+
+    fin >> res.costs.splitLine >> res.costs.splitPoint >> res.costs.color >> res.costs.swap >> res.costs.merge;
+
     fin.close();
     return res;
 }
@@ -98,6 +110,8 @@ Input readInputAndStoreAsGlobal(const string& fname) {
     M = i.M;
     colors = i.colors;
     rawBlocks = i.rawBlocks;
+    initialColors = i.initialColors;
+    costs = i.costs;
     return i;
 }
 
@@ -645,8 +659,7 @@ void inputWindow() {
     ImGui::End();
 }
 
-int main(int, char**)
-{
+int main(int , char** ) {
     running = true;
     for (int i = 1; i < 1000; i++) myScores[i] = -1;
     thread updateThread(updateStandingsTimed);
