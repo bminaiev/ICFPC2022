@@ -160,6 +160,8 @@ def save_standings():
             mintest[tid].sort()
             while len(mintest[tid]) < 2:
                 mintest[tid].append(10 ** 9)
+            if tid not in mytest:
+                mytest[tid] = 10 ** 9
 
             fout.write(f"{tid} {mytest[tid]} {mintest[tid][0]} {mintest[tid][1]}\n")
             print("{0:2d} {1:8d}:our {2:8d}:best {3:8d}:{4}".format(tid, mytest[tid], mintest[tid][0],

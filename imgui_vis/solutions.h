@@ -648,7 +648,8 @@ void solveGena(int S, int mode) {
         }
       }
     }
-    mt19937 rng(58);
+    int zzseed = int(GetTime());
+    mt19937 rng(zzseed);
     for (int xa = n - 1; xa >= 0; xa--) {
       auto time_elapsed = GetTime();
       msg.clear() << "n = " << n << ", xa = " << xa << ", time = " << time_elapsed << "s\n";
@@ -1138,7 +1139,8 @@ void solveOpt() {
       }
       return ForceRecalcTop(i, j);
     };
-    mt19937 rng(58);
+    int zzseed = int(GetTime());
+    mt19937 rng(zzseed);
     uniform_real_distribution<double> urd(0, 1);
     auto AddCorner = [&](int i, int j, int where) {
       assert(top[i][j] != make_pair(i, j));
@@ -1244,6 +1246,7 @@ void solveOpt() {
     int best_total = total;
 
     auto optimizeHard = [&](int r1, int c1, int r2, int c2, int maxIters) {
+        int start_total = total;
         vector<pair<pair<int, int>, int>> save;
         for (int i = r1; i < r2; i++)
             for (int j = c1; j < c2; j++)
@@ -1252,8 +1255,15 @@ void solveOpt() {
                     RemoveCorner(i, j);
                 }
 
-        int start_total = total;
-        for (int it = 0; it < maxIters; it++) {
+        if (save.empty()) return;
+        drawR1 = r1;
+        drawR2 = r2;
+        drawC1 = c1;
+        drawC2 = c2;
+        cerr << "optimizeHard " << r1 << "," << c1 << " - " << r2 << "," << c2 << ", " << save.size() << " removed:\n";
+        cerr << start_total / 1000.0 << " -> " << total / 1000.0;
+        
+        for (int it = 0; it < maxIters && optRunning; it++) {
           if (total < best_total) {
             best_total = total;
             rects.clear();
@@ -1364,16 +1374,17 @@ void solveOpt() {
           }
         }
 
-        cerr << "optimizeHard " << r1 << "," << c1 << " - " << r2 << "," << c2 << ": " << start_total << " -> " << total << endl;
-        if (start_total < total) {
+        cerr << " -> " << total / 1000.0 << endl;
+        /*if (start_total < total) {
             for (int i = r1; i < r2; i++)
                 for (int j = c1; j < c2; j++)
                     if (top[i][j] == make_pair(i, j)) {
                         RemoveCorner(i, j);
                     }
+            reverse(save.begin(), save.end());
             for (auto [c, id] : save)
                 AddCorner(c.first, c.second, id);
-        }
+        }*/
     };
 
     auto optimizeOneByOne = [&]() {
@@ -1727,17 +1738,21 @@ void solveOpt() {
                 if (c1 > c2) swap(c1, c2);
                 if (r1 > r2) swap(r1, r2);
                 if (r1 == r2 || c1 == c2) continue;
-                if ((r2 - r1) * (c2 - c1) > 400) continue;
+                if (r2 - r1 < 10 || c2 - c1 < 10) continue;
+                if ((r2 - r1) * (c2 - c1) > 2345) continue;
+                if ((r2 - r1) * (c2 - c1) < 234) continue;
 
                 break;
             }
 
-            optimizeHard(r1, c1, r2, c2, 10000);
+            optimizeHard(r1, c1, r2, c2, hardIters);
+            break;
         }
     } else if (regionOpt)
         optimizeRegions();
     else
         optimizeOneByOne();
+    drawR2 = drawC2 = 0;
 /*    sort(rects.begin(), rects.end(), [&](auto& r1, auto& r2) {
       return Priority(r1.first) < Priority(r2.first);
     });*/

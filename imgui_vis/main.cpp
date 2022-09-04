@@ -475,6 +475,12 @@ void draw() {
             dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), QP(0 + b.c2 - 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
         }
     }
+
+    if (drawR2 > 0) {
+        auto color = IM_COL32(255, 128, 64, 255);
+        dl->AddRect(QP(drawR1 + M + 10, N - drawC2), QP(drawR2 + M + 10, N - drawC1), color, 3);
+        dl->AddRect(QP(drawR1, N - drawC2), QP(drawR2, N - drawC1), color, 3);
+    }
 }
 
 
@@ -605,8 +611,10 @@ void optsWindow() {
 
             ImGui::InputInt("TL, sec", &optSeconds, 1, 10);
             ImGui::Checkbox("Optimize by regions", &regionOpt);
-            ImGui::SameLine(260);
+            ImGui::SameLine(180);
             ImGui::Checkbox("Hard Rect Optimize", &hardRects);
+            ImGui::SameLine(350);
+            ImGui::InputInt("HardIters", &hardIters, 1, 100000000);
 
             ImGui::Text("%s\n%s", msg.s.str().c_str(), requestResult.c_str());
         }

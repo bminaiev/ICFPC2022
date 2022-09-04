@@ -21,3 +21,5 @@ bool optRunning;
 bool hardMove;
 bool regionOpt = true;
 bool hardRects;
+int drawR1, drawR2, drawC1, drawC2;
+int hardIters = 5000;

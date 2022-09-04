@@ -24,4 +24,4 @@ for f in sorted(os.listdir(image_dir), key=lambda s: int(s[:s.find('.')])):
         fout.write(f"{len(js['blocks'])}\n")
         for i, b in enumerate(js['blocks']):
             assert(int(b['blockId']) == i)
-            fout.write(f"{b['blockId']} " + " ".join(map(str, b['bottomLeft'] + b["topRight"] + b["color"])) + "\n")
+            fout.write(f"{b['blockId']} " + " ".join(map(str, b['bottomLeft'] + b["topRight"] + (b["color"] if "color" in b else [255, 255, 255, 255]))) + "\n")
