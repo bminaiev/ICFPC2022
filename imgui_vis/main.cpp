@@ -388,11 +388,12 @@ int sgn(int x) {
     return x < 0 ? -1 : 1;
 }
 
+ImVec2 QP(double x, double y) {
+    return ImVec2(x * scale - shiftX, y * scale - shiftY);
+}
+
 void draw() {
     ImDrawList* dl = ImGui::GetBackgroundDrawList();
-    auto QP = [](double x, double y) {
-        return ImVec2(x * scale - shiftX, y * scale - shiftY);
-    };
     for (int i = 0; i < N; i++)
         for (int j = 0; j < M; j++) {
             Color c = colors[N - 1 - i][j];
@@ -429,8 +430,8 @@ void draw() {
             dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), 10, IM_COL32(128, 128, 128, 128));
             dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
             dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), 2, IM_COL32(0, 0, 0, 255));
-            dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
-            dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c2 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c2 - 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
 
             dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r1 - 0.5), 10, IM_COL32(128, 128, 128, 128));
             dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r1 - 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
@@ -453,8 +454,8 @@ void draw() {
             dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), 10, IM_COL32(128, 128, 128, 128));
             dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
             dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), 2, IM_COL32(0, 0, 0, 255));
-            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), QP(0 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
-            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), QP(0 + b.c2 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), QP(0 + b.c2 - 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), QP(0 + b.c2 - 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
         }
     }
 }
@@ -481,10 +482,35 @@ void processMouse() {
         shiftX -= io.MouseDelta.x;
         shiftY -= io.MouseDelta.y;
     }
-    if (ImGui::IsMouseDown(0)) {
+    const int ALT_CODE = 643;
+    if (ImGui::IsMouseClicked(0)) {
+        if (ImGui::IsKeyDown(ALT_CODE)) {
+            int idxToRem = -1;
+            for (size_t i = 0; i < coloredBlocks.size(); i++) {
+                auto check = [&](double r, double c) {
+                    auto p = QP(c, N - r);
+                    if (abs(p[0] - io.MousePos.x) < 10 && abs(p[1] - io.MousePos.y) < 10)
+                        idxToRem = i;
+                };
+                check(coloredBlocks[i].r1 + 0.5, coloredBlocks[i].c1 + 0.5);
+                check(coloredBlocks[i].r1 + 0.5, coloredBlocks[i].c2 - 0.5);
+                check(coloredBlocks[i].r2 - 0.5, coloredBlocks[i].c1 + 0.5);
+                check(coloredBlocks[i].r2 - 0.5, coloredBlocks[i].c2 - 0.5);
+
+                check(coloredBlocks[i].r1 + 0.5, M + 10 + coloredBlocks[i].c1 + 0.5);
+                check(coloredBlocks[i].r1 + 0.5, M + 10 + coloredBlocks[i].c2 - 0.5);
+                check(coloredBlocks[i].r2 - 0.5, M + 10 + coloredBlocks[i].c1 + 0.5);
+                check(coloredBlocks[i].r2 - 0.5, M + 10 + coloredBlocks[i].c2 - 0.5);
+            }
+            if (idxToRem != -1) {
+                for (; idxToRem + 1 < (int)coloredBlocks.size(); idxToRem++)
+                    coloredBlocks[idxToRem] = coloredBlocks[idxToRem + 1];
+                coloredBlocks.pop_back();
+            }
+        }
     }
-    if (ImGui::IsMouseReleased(0)) {
-    }
+    // if (ImGui::IsMouseReleased(0)) {
+    // }
 }
 
 void optsWindow() {
@@ -584,7 +610,7 @@ int main(int, char**)
         sw.newFrame();
         // ImGui::GetIO().FontGlobalScale = 1.5;
 
-        // inputWindow();
+        inputWindow();
         fileWindow();
         optsWindow();
         
