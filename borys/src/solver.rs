@@ -13,7 +13,8 @@ use crate::{
     op::Op,
     ops_by_rects::gen_ops_by_solution_rects,
     pixel_dist::{
-        estimate_pixel_distance_range_one_color, get_pixel_distance_range_one_color, EstimateResult,
+        estimate_pixel_distance_range_one_color, get_pixel_distance,
+        get_pixel_distance_range_one_color, EstimateResult,
     },
     test_case::TestCase,
     utils::p,
@@ -294,6 +295,18 @@ pub struct SolutionRes {
     pub a: Array2D<Color>,
     pub expected_score: f64,
     pub ops: Vec<Op>,
+}
+
+impl SolutionRes {
+    pub fn new_from_ops(test_case: &TestCase, ops: &[Op]) -> Self {
+        let res = apply_ops(ops, test_case);
+        Self {
+            ops: ops.to_vec(),
+            expected_score: res.only_ops_cost
+                + get_pixel_distance(&res.picture, &test_case.expected),
+            a: res.picture,
+        }
+    }
 }
 
 fn gen_coords(block_size: usize, max_value: usize) -> Vec<usize> {

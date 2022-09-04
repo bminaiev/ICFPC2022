@@ -70,6 +70,11 @@ fn local_optimize(test_id: usize) {
     let start = Instant::now();
     let test_case = read_case(test_id);
     let ops = read_submit(&format!("../outputs/{}.isl", test_id));
+    {
+        // maybe we downloaded something better than we have locally? Update score
+        let sol = SolutionRes::new_from_ops(&test_case, &ops);
+        save_solution(test_id, &sol);
+    }
     let start_whole_id = 0;
     let expected = &test_case.expected;
     let rects = gen_rects_by_ops(&ops, expected.len(), expected[0].len());
@@ -80,16 +85,18 @@ fn local_optimize(test_id: usize) {
 
 fn main() {
     // solve_all();
-    const TEST_ID: usize = 26;
+    const TEST_ID: usize = 32;
     // loop {
     //     dbg!("NEXT ITERATION!!!");
-    for test_id in TEST_ID..=TEST_ID {
-        dbg!(test_id);
-        loop {
+    loop {
+        for test_id in 1..=25 {
+            dbg!(test_id);
+            // loop {
             local_optimize(test_id);
+            // }
+            // solve_fast(test_id);
+            // solve_case(test_id, 6, true);
         }
-        // solve_fast(test_id);
-        // solve_case(test_id, 6, true);
     }
     // }
     // let start = Instant::now();
