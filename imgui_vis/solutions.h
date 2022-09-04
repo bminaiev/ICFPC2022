@@ -1381,7 +1381,7 @@ void solveOpt() {
         }
       }
 
-      { // REM
+      if ((it + 1) % 100 == 0) { // REM
         int id = rng() % (int) corners.size();
         i = corners[id].first;
         j = corners[id].second;

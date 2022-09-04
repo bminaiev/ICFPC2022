@@ -36,12 +36,11 @@
 using namespace std;
 typedef std::chrono::high_resolution_clock Time;
 typedef std::chrono::milliseconds chrono_ms;
-    
+
 #define forn(i, N) for (int i = 0; i < (int)(N); i++)
 #define sqr(x) (x)*(x)
 using ll = long long;
 using Color = array<int, 4>;
-
 
 #include "api.h"
 #include "solutions.h"
@@ -50,6 +49,18 @@ namespace fs = std::filesystem;
 const string inputsPath = "../inputs/";
 const string solutionsPath = "../solutions/";
 
+const unordered_map<int, int> sameTests = {
+    {26, 5},
+    {27, 2},
+    {28, 10},
+    {29, 18},
+    {30, 11},
+    {31, 24},
+    {32, 9},
+    {33, 15},
+    {34, 7},
+    {35, 25}
+};
 
 int selected_idx, currentTestId;
 Painter painter;
@@ -104,7 +115,7 @@ void postprocess(Solution& res) {
     coloredBlocks = painter.coloredBlocks;
     if (myScores[currentTestId] == -1 || res.score < myScores[currentTestId]) {
         string fname = "../solutions/" + to_string(currentTestId) + ".txt";
-        myScores[currentTestId] = res.score;        
+        myScores[currentTestId] = res.score;
         ofstream ofs(fname);
         for (const auto& i : res.ins) {
             ofs << i.text() << endl;
@@ -229,7 +240,7 @@ void fileWindow() {
                 if (idx - 1 < (int)testResults.size()) {
                     if (get<1>(testResults[idx - 1]) < myScores[idx] || myScores[idx] == -1) {
                         downloadSolution(idx);
-                    }    
+                    }
                 }
             }
         }
@@ -263,7 +274,7 @@ void fileWindow() {
                 while (s[j] >= '0' && s[j] <= '9') j++;
                 int test_id;
                 sscanf(s.substr(i, j).c_str(), "%d", &test_id);
-                
+
                 Input in = readInput(s);
                 cerr << "read input " << in.N << "x" << in.M << endl;
                 auto [sol, _] = loadSolution(in, solutionsPath + to_string(test_id) + ".txt");
@@ -301,7 +312,7 @@ void fileWindow() {
         sort(tests.begin(), tests.end());
         if (ImGui::BeginTable("Tests", 5))
         {
-            ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 64.0f);
+            ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 90.0f);
             ImGui::TableSetupColumn("Local");
             ImGui::TableSetupColumn("My subs");
             ImGui::TableSetupColumn("Best");
@@ -310,6 +321,7 @@ void fileWindow() {
 
             for (size_t idx = 0; idx < tests.size(); idx++) {
                 ImGui::TableNextRow();
+
                 ImGui::TableNextColumn();
                 if (tests[idx].first == currentTestId) {
                     ImU32 color = IM_COL32(180, 180, 180, 180);
@@ -332,6 +344,11 @@ void fileWindow() {
                     msg.clear() << "Loaded solution, score " << sol.score << ", " << cb.size() << " colored rects found\n";
                     requestResult = "";
                 }
+                if (sameTests.find(tid) != sameTests.end()) {
+                    ImGui::SameLine(67);
+                    ImGui::Text("(%d)", sameTests.find(tid)->second);
+                }
+
                 ImGui::TableNextColumn();
                 if (idx < testResults.size() && myScores[tests[idx].first] < get<1>(testResults[idx])) {
                     ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "%d", myScores[tests[idx].first]);
@@ -343,7 +360,7 @@ void fileWindow() {
                 if (ImGui::Button(bName.c_str())) {
                     apiSubmit(tests[idx].first);
                 }
-                
+
                 if (idx < testResults.size()) {
                     assert(get<0>(testResults[idx]) == tests[idx].first);
                     ImGui::TableNextColumn();
@@ -417,7 +434,7 @@ void draw() {
 
             dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), 10, IM_COL32(128, 128, 128, 128));
             dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
-            dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), 2, IM_COL32(0, 0, 0, 255));            
+            dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), 2, IM_COL32(0, 0, 0, 255));
             dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c2 - 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r1 - 0.5), IM_COL32(0, 0, 0, 255), 1);
             dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5 - 2 * sgn(b.r2 - b.r1)), IM_COL32(0, 0, 0, 255), 1);
 
@@ -483,6 +500,7 @@ void processMouse() {
         shiftY -= io.MouseDelta.y;
     }
     const int ALT_CODE = 643;
+    const int CTRL_CODE = 641;
     if (ImGui::IsMouseClicked(0)) {
         if (ImGui::IsKeyDown(ALT_CODE)) {
             int idxToRem = -1;
@@ -506,6 +524,29 @@ void processMouse() {
                 for (; idxToRem + 1 < (int)coloredBlocks.size(); idxToRem++)
                     coloredBlocks[idxToRem] = coloredBlocks[idxToRem + 1];
                 coloredBlocks.pop_back();
+            }
+        }
+        if (ImGui::IsKeyDown(CTRL_CODE)) {
+            bool topright = true;
+            for (const auto& b : coloredBlocks)
+                if (b.r2 != N || b.c2 != N) {
+                    topright = false;
+                    break;
+                }
+            if (!topright) {
+                msg << "Can only add blocks to topright corner\n";
+            } else {
+                int cx = (io.MousePos.x + shiftX) / scale;
+                int cy = (io.MousePos.y + shiftY) / scale;
+                if (cx > M + 5) cx -= M + 10;
+                cy = N - cy - 1;
+
+                coloredBlocks.push_back(Block{cy, cx, N, N, colors[cy][cx]});
+                int idx = coloredBlocks.size() - 1;
+                while (idx > 0 && (coloredBlocks[idx].r1 < coloredBlocks[idx - 1].r1 || coloredBlocks[idx].c1 < coloredBlocks[idx - 1].c1)) {
+                    swap(coloredBlocks[idx], coloredBlocks[idx - 1]);
+                    idx--;
+                }
             }
         }
     }
@@ -559,7 +600,7 @@ void optsWindow() {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.54f, 0.54f, 0.1f, 1.0f));
             if (ImGui::Button("Hard Move")) {
                 hardMove = true;
-            }            
+            }
             ImGui::PopStyleColor(2);
 
             ImGui::InputInt("TL, sec", &optSeconds, 1, 10);
@@ -613,7 +654,7 @@ int main(int, char**)
         inputWindow();
         fileWindow();
         optsWindow();
-        
+
         processMouse();
         draw();
 
