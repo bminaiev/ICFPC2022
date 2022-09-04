@@ -1320,48 +1320,42 @@ void solveOpt() {
                     bad = true;
                 }
             }
-            int conts = 0;
-            while (!bad) {
-              int ni = i - 3 + rng() % 7;
-              int nj = j - 3 + rng() % 7;
-              if (ni < 0 || nj < 0 || ni >= N || nj >= N || top[ni][nj] == make_pair(ni, nj) || (ni == 0 && nj == 0)) {
-                if (++conts > 5) {
-                  break;
-                }
-                continue;
-              }
-              {
-                int L = 0;
-                int R = (int) corners.size();
-                for (int it = 0; it < (int) corners.size(); it++) {
-                  if (corners[it].first <= ni && corners[it].second <= nj) {
-                    L = max(L, it + 1);
-                  }
-                  if (ni <= corners[it].first && nj <= corners[it].second) {
-                    R = min(R, it);
-                  }
-                }
-                if (L > id || id > R) {
-                  if (++conts > 5) {
-                    break;
-                  }
-                  continue;
-                }
-              }
-              conts = 0;
-              auto old_total = total;
-              RemoveCorner(i, j);
-              AddCorner(ni, nj, id);
-              if (total <= old_total || exp((old_total - total) / 10000.0 / T) > urd(rng)) {
-                wlog("MOV");
-                setlocal
-                i = ni;
-                j = nj;
-              } else {
-                RemoveCorner(ni, nj);
-                AddCorner(i, j, id);
-                break;
-              }
+            if (!bad) {
+                for (int di = -1; di <= 1; di++)
+                    for (int dj = -1; dj <= 1; dj++)
+                        if (di != 0 || dj != 0) {
+                          int ni = i + di;
+                          int nj = j + dj;
+                          if (ni < 0 || nj < 0 || ni >= N || nj >= N || top[ni][nj] == make_pair(ni, nj) || (ni == 0 && nj == 0))
+                            continue;
+                          {
+                            int L = 0;
+                            int R = (int) corners.size();
+                            for (int it = 0; it < (int) corners.size(); it++) {
+                              if (corners[it].first <= ni && corners[it].second <= nj) {
+                                L = max(L, it + 1);
+                              }
+                              if (ni <= corners[it].first && nj <= corners[it].second) {
+                                R = min(R, it);
+                              }
+                            }
+                            if (L > id || id > R) {
+                                continue;
+                            }
+                          }
+                          auto old_total = total;
+                          RemoveCorner(i, j);
+                          AddCorner(ni, nj, id);
+                          if (total <= old_total || exp((old_total - total) / 10000.0 / T) > urd(rng)) {
+                            wlog("MOV");
+                            setlocal
+                            i = ni;
+                            j = nj;
+                          } else {
+                            RemoveCorner(ni, nj);
+                            AddCorner(i, j, id);
+                          }
+                      }
             }
           }
 
