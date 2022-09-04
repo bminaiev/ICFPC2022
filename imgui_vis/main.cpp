@@ -534,7 +534,7 @@ void processMouse() {
                     break;
                 }
             if (!topright) {
-                msg << "Can only add blocks to topright corner\n";
+                msg << "Sorry, can only add blocks to topright corner\n";
             } else {
                 int cx = (io.MousePos.x + shiftX) / scale;
                 int cy = (io.MousePos.y + shiftY) / scale;
@@ -604,6 +604,7 @@ void optsWindow() {
             ImGui::PopStyleColor(2);
 
             ImGui::InputInt("TL, sec", &optSeconds, 1, 10);
+            ImGui::Checkbox("Optimize by regions", &regionOpt);
 
             ImGui::Text("%s\n%s", msg.s.str().c_str(), requestResult.c_str());
         }
