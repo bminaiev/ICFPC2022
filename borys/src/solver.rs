@@ -325,6 +325,9 @@ fn gen_coords(block_size: usize, max_value: usize) -> Vec<usize> {
 
 pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool) -> SolutionRes {
     let expected = &test_case.expected;
+
+    let merge_result = merge(&test_case);
+
     let color_picker = ColorPicker::new(&expected);
     let n = expected.len();
     let m = expected[0].len();
@@ -388,7 +391,6 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
 
     dbg!(rects.len());
 
-    let merge_result = merge(&test_case);
     let after_merge_ops_applied = apply_ops(&merge_result.ops, test_case);
     let merge_cost = after_merge_ops_applied.only_ops_cost;
     let all_ops: Vec<Op> = gen_ops_by_solution_rects(&rects, n, m, &merge_result);
@@ -420,6 +422,7 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
 
     let score_without_merge = solution.dp[0][0][xs.len() - 1][ys.len() - 1];
     dbg!(score_without_merge);
+    dbg!(merge_cost);
     dbg!(score_without_merge + merge_cost);
     SolutionRes {
         a: my_picture,

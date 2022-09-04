@@ -85,7 +85,11 @@ fn local_optimize(test_id: usize) {
 
 fn main() {
     // solve_all();
-    const TEST_ID: usize = 32;
+    const TEST_ID: usize = 29;
+    solve_fast(TEST_ID);
+    if true {
+        return;
+    }
     // loop {
     //     dbg!("NEXT ITERATION!!!");
     loop {

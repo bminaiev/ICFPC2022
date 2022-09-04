@@ -121,7 +121,8 @@ pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
                 assert!(new_r.size() == r1.size() + r2.size());
                 last_rect_id += 1;
                 rects.insert(rect_id_from_usize(last_rect_id), new_r);
-                cost += (MERGE_COST * canvas_size / fmax(r1.size(), r2.size())).round();
+                let cur_op_cost = (MERGE_COST * canvas_size / fmax(r1.size(), r2.size())).round();
+                cost += cur_op_cost;
                 rects.remove(id1);
                 rects.remove(id2);
             }
