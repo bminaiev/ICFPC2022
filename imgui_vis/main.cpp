@@ -268,6 +268,10 @@ void downloadSolution(int testId) {
     auto [sol, _] = loadSolution(in, solutionsPath + to_string(currentTestId) + ".txt");
     postprocess(sol);
     myScores[testId] = sol.score;
+    ofstream ofs("local_scores.txt");
+    for (auto [id, sc] : myScores)
+        ofs << id << " " << sc << endl;
+    ofs.close();
     cerr << "downloaded and loaded sol for test " << testId << " with score " << sol.score << endl;
 }
 
@@ -734,7 +738,7 @@ void inputWindow() {
 
 int main(int , char** ) {
     running = true;
-    for (int i = 1; i < 1000; i++) myScores[i] = -1;
+    for (int i = 1; i < 100; i++) myScores[i] = -1;
     thread updateThread(updateStandingsTimed);
     SDLWrapper sw;
     if (!sw.init()) return -1;
