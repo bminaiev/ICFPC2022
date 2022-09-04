@@ -57,7 +57,7 @@ unordered_map<int, int> myScores;
 
 double scale = 1;
 double shiftX, shiftY;
-
+bool showCorners;
 
 Input readInput(const string& fname) {
     Input res;
@@ -383,6 +383,11 @@ void fileWindow() {
     ImGui::End();
 }
 
+int sgn(int x) {
+    if (x == 0) return 0;
+    return x < 0 ? -1 : 1;
+}
+
 void draw() {
     ImDrawList* dl = ImGui::GetBackgroundDrawList();
     auto QP = [](double x, double y) {
@@ -400,6 +405,50 @@ void draw() {
                 dl->AddRectFilled(QP(j + M + 10, i), QP((j + 1 + M + 10), (i + 1)), color);
             }
         }
+
+    if (showCorners) {
+        for (const auto& b : coloredBlocks) {
+            dl->AddCircleFilled(QP(M + 10 + b.c1 + 0.5, N - b.r1 - 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(M + 10 + b.c1 + 0.5, N - b.r1 - 0.5), 2, IM_COL32(0, 0, 0, 255));
+            dl->AddLine(QP(M + 10 + b.c1 + 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c1 + 0.5 + 2 * sgn(b.c2 - b.c1), N - b.r1 - 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(M + 10 + b.c1 + 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c1 + 0.5, N - b.r1 - 0.5 - 2 * sgn(b.r2 - b.r1)), IM_COL32(0, 0, 0, 255), 1);
+
+            dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), 2, IM_COL32(0, 0, 0, 255));
+            dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r1 - 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c2 + 0.5, N - b.r1 - 0.5 - 2 * sgn(b.r2 - b.r1)), IM_COL32(0, 0, 0, 255), 1);
+
+            dl->AddCircleFilled(QP(M + 10 + b.c1 + 0.5, N - b.r2 + 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(M + 10 + b.c1 + 0.5, N - b.r2 + 0.5), 2, IM_COL32(0, 0, 0, 255));
+            dl->AddLine(QP(M + 10 + b.c1 + 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c1 + 0.5 + 2 * sgn(b.c2 - b.c1), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(M + 10 + b.c1 + 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c1 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
+
+            dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), 2, IM_COL32(0, 0, 0, 255));
+            dl->AddLine(QP(M + 10 + b.c2 + 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(M + 10 + b.c2 + 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c2 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
+
+            dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r1 - 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r1 - 0.5), 2, IM_COL32(0, 0, 0, 255));
+            dl->AddLine(QP(0 + b.c1 + 0.5, N - b.r1 - 0.5), QP(0 + b.c1 + 0.5 + 2 * sgn(b.c2 - b.c1), N - b.r1 - 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(0 + b.c1 + 0.5, N - b.r1 - 0.5), QP(0 + b.c1 + 0.5, N - b.r1 - 0.5 - 2 * sgn(b.r2 - b.r1)), IM_COL32(0, 0, 0, 255), 1);
+
+            dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r1 - 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r1 - 0.5), 2, IM_COL32(0, 0, 0, 255));
+            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r1 - 0.5), QP(0 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r1 - 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r1 - 0.5), QP(0 + b.c2 + 0.5, N - b.r1 - 0.5 - 2 * sgn(b.r2 - b.r1)), IM_COL32(0, 0, 0, 255), 1);
+
+            dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r2 + 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r2 + 0.5), 2, IM_COL32(0, 0, 0, 255));
+            dl->AddLine(QP(0 + b.c1 + 0.5, N - b.r2 + 0.5), QP(0 + b.c1 + 0.5 + 2 * sgn(b.c2 - b.c1), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(0 + b.c1 + 0.5, N - b.r2 + 0.5), QP(0 + b.c1 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
+
+            dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), 2, IM_COL32(0, 0, 0, 255));
+            dl->AddLine(QP(0 + b.c2 + 0.5, N - b.r2 + 0.5), QP(0 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(0 + b.c2 + 0.5, N - b.r2 + 0.5), QP(0 + b.c2 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
+        }
+    }
 }
 
 
@@ -426,6 +475,7 @@ void optsWindow() {
     static bool runInMainThread = false;
     if (ImGui::Begin("Solution")) {
         ImGui::Text("Current test: %d", currentTestId);
+        ImGui::Checkbox("Show Corners", &showCorners);
         if (currentTestId >= 1) {
             ImGui::DragInt("DP Step", &S, 1, 2, 200, "S=%d", ImGuiSliderFlags_AlwaysClamp);
             ImGui::DragInt("Direction", &mode, 1, 0, 3, "D=%d", ImGuiSliderFlags_AlwaysClamp);
