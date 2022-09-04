@@ -409,41 +409,49 @@ void draw() {
     if (showCorners) {
         for (const auto& b : coloredBlocks) {
             dl->AddCircleFilled(QP(M + 10 + b.c1 + 0.5, N - b.r1 - 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(M + 10 + b.c1 + 0.5, N - b.r1 - 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
             dl->AddCircleFilled(QP(M + 10 + b.c1 + 0.5, N - b.r1 - 0.5), 2, IM_COL32(0, 0, 0, 255));
             dl->AddLine(QP(M + 10 + b.c1 + 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c1 + 0.5 + 2 * sgn(b.c2 - b.c1), N - b.r1 - 0.5), IM_COL32(0, 0, 0, 255), 1);
             dl->AddLine(QP(M + 10 + b.c1 + 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c1 + 0.5, N - b.r1 - 0.5 - 2 * sgn(b.r2 - b.r1)), IM_COL32(0, 0, 0, 255), 1);
 
             dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), 10, IM_COL32(128, 128, 128, 128));
-            dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), 2, IM_COL32(0, 0, 0, 255));
-            dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r1 - 0.5), IM_COL32(0, 0, 0, 255), 1);
-            dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c2 + 0.5, N - b.r1 - 0.5 - 2 * sgn(b.r2 - b.r1)), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
+            dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), 2, IM_COL32(0, 0, 0, 255));            
+            dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c2 - 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r1 - 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5), QP(M + 10 + b.c2 - 0.5, N - b.r1 - 0.5 - 2 * sgn(b.r2 - b.r1)), IM_COL32(0, 0, 0, 255), 1);
 
             dl->AddCircleFilled(QP(M + 10 + b.c1 + 0.5, N - b.r2 + 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(M + 10 + b.c1 + 0.5, N - b.r2 + 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
             dl->AddCircleFilled(QP(M + 10 + b.c1 + 0.5, N - b.r2 + 0.5), 2, IM_COL32(0, 0, 0, 255));
             dl->AddLine(QP(M + 10 + b.c1 + 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c1 + 0.5 + 2 * sgn(b.c2 - b.c1), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
             dl->AddLine(QP(M + 10 + b.c1 + 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c1 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
 
             dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
             dl->AddCircleFilled(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), 2, IM_COL32(0, 0, 0, 255));
             dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
             dl->AddLine(QP(M + 10 + b.c2 - 0.5, N - b.r2 + 0.5), QP(M + 10 + b.c2 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
 
             dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r1 - 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r1 - 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
             dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r1 - 0.5), 2, IM_COL32(0, 0, 0, 255));
             dl->AddLine(QP(0 + b.c1 + 0.5, N - b.r1 - 0.5), QP(0 + b.c1 + 0.5 + 2 * sgn(b.c2 - b.c1), N - b.r1 - 0.5), IM_COL32(0, 0, 0, 255), 1);
             dl->AddLine(QP(0 + b.c1 + 0.5, N - b.r1 - 0.5), QP(0 + b.c1 + 0.5, N - b.r1 - 0.5 - 2 * sgn(b.r2 - b.r1)), IM_COL32(0, 0, 0, 255), 1);
 
             dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r1 - 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r1 - 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
             dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r1 - 0.5), 2, IM_COL32(0, 0, 0, 255));
-            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r1 - 0.5), QP(0 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r1 - 0.5), IM_COL32(0, 0, 0, 255), 1);
-            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r1 - 0.5), QP(0 + b.c2 + 0.5, N - b.r1 - 0.5 - 2 * sgn(b.r2 - b.r1)), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r1 - 0.5), QP(0 + b.c2 - 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r1 - 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r1 - 0.5), QP(0 + b.c2 - 0.5, N - b.r1 - 0.5 - 2 * sgn(b.r2 - b.r1)), IM_COL32(0, 0, 0, 255), 1);
 
             dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r2 + 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r2 + 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
             dl->AddCircleFilled(QP(0 + b.c1 + 0.5, N - b.r2 + 0.5), 2, IM_COL32(0, 0, 0, 255));
             dl->AddLine(QP(0 + b.c1 + 0.5, N - b.r2 + 0.5), QP(0 + b.c1 + 0.5 + 2 * sgn(b.c2 - b.c1), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
             dl->AddLine(QP(0 + b.c1 + 0.5, N - b.r2 + 0.5), QP(0 + b.c1 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
 
             dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), 10, IM_COL32(128, 128, 128, 128));
+            dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), 7, IM_COL32(b.color[0], b.color[1], b.color[2], b.color[3]));
             dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), 2, IM_COL32(0, 0, 0, 255));
             dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), QP(0 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
             dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), QP(0 + b.c2 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);

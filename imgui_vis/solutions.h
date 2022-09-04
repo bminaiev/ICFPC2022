@@ -17,6 +17,7 @@ struct RawBlock {
 
 struct Block {
     int r1, c1, r2, c2;
+    Color color;
 };
 
 int N, M;
@@ -184,7 +185,7 @@ struct Painter {
             for (int x = b.blX; x < b.trX; x++)
                 for (int y = b.blY; y < b.trY; y++)
                     clr[y][x] = c;
-            blocks[b.id] = Block{b.blY, b.blX, b.trY, b.trX};
+            blocks[b.id] = Block{b.blY, b.blX, b.trY, b.trX, c};
         }        
     }
 
@@ -197,6 +198,7 @@ struct Painter {
             for (int j = b.c1; j < b.c2; j++)
                 clr[i][j] = c;
         coloredBlocks.push_back(b);
+        coloredBlocks.back().color = c;
         return true;
     }
 
