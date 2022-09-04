@@ -20,3 +20,4 @@ int optSeconds = 600;
 bool optRunning;
 bool hardMove;
 bool regionOpt = true;
+bool hardRects;

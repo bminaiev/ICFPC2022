@@ -605,6 +605,8 @@ void optsWindow() {
 
             ImGui::InputInt("TL, sec", &optSeconds, 1, 10);
             ImGui::Checkbox("Optimize by regions", &regionOpt);
+            ImGui::SameLine(260);
+            ImGui::Checkbox("Hard Rect Optimize", &hardRects);
 
             ImGui::Text("%s\n%s", msg.s.str().c_str(), requestResult.c_str());
         }
