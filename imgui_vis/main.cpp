@@ -445,8 +445,8 @@ void draw() {
 
             dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), 10, IM_COL32(128, 128, 128, 128));
             dl->AddCircleFilled(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), 2, IM_COL32(0, 0, 0, 255));
-            dl->AddLine(QP(0 + b.c2 + 0.5, N - b.r2 + 0.5), QP(0 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
-            dl->AddLine(QP(0 + b.c2 + 0.5, N - b.r2 + 0.5), QP(0 + b.c2 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), QP(0 + b.c2 + 0.5 + 2 * sgn(b.c1 - b.c2), N - b.r2 + 0.5), IM_COL32(0, 0, 0, 255), 1);
+            dl->AddLine(QP(0 + b.c2 - 0.5, N - b.r2 + 0.5), QP(0 + b.c2 + 0.5, N - b.r2 + 0.5 - 2 * sgn(b.r1 - b.r2)), IM_COL32(0, 0, 0, 255), 1);
         }
     }
 }
@@ -456,10 +456,18 @@ void processMouse() {
     auto& io = ImGui::GetIO();
     if (io.WantCaptureMouse) return;
     if (io.MouseWheel == 1) {
-        scale = scale * 1.1;
+        double cx = (io.MousePos.x + shiftX) / scale;
+        double cy = (io.MousePos.y + shiftY) / scale;
+        scale = scale * 1.234;
+        shiftX = cx * scale - io.MousePos.x;
+        shiftY = cy * scale - io.MousePos.y;
     }
     if (io.MouseWheel == -1) {
-        scale = scale / 1.1;
+        double cx = (io.MousePos.x + shiftX) / scale;
+        double cy = (io.MousePos.y + shiftY) / scale;
+        scale = scale / 1.234;
+        shiftX = cx * scale - io.MousePos.x;
+        shiftY = cy * scale - io.MousePos.y;
     }
     if (ImGui::IsMouseDown(1)) {
         shiftX -= io.MouseDelta.x;
