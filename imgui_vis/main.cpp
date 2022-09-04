@@ -117,6 +117,9 @@ Input readInputAndStoreAsGlobal(const string& fname) {
 
 void postprocess(Solution& res) {
     painter = Painter(N, M, rawBlocks);
+    while (!res.ins.empty() && res.ins.back().type != tColor) {
+      res.ins.pop_back();
+    }
     msg << "Solved with penalty " << res.score << "\n";
     for (const auto& ins : res.ins) {
         if (!painter.doInstruction(ins)) {
