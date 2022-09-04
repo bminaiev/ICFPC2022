@@ -3,7 +3,7 @@ from collections import defaultdict
 from termcolor import colored
 
 headers = {
-    'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1haWxyb21rYUBnbWFpbC5jb20iLCJleHAiOjE2NjIyOTc1MzIsIm9yaWdfaWF0IjoxNjYyMjExMTMyfQ.Uz68RJBnRdKHnJHYGUwzYxYccg-wqNDPZITGSUhj1C8'
+    'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1haWxyb21rYUBnbWFpbC5jb20iLCJleHAiOjE2NjIzODI5NzQsIm9yaWdfaWF0IjoxNjYyMjk2NTc0fQ.VkDFyCTBqRcQcY4Z6YPCCP4o9Hap4ITLgF5JrzIkBsE'
 }
 
 submit_url = 'https://robovinci.xyz/api/submissions/{}/create'

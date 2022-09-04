@@ -11,12 +11,14 @@ use crate::{
     op::Op,
     rect_id::{rect_id_from_usize, rect_id_sub_key},
     test_case::{Rect, TestCase},
+    utils::p,
     Point,
 };
 
 pub struct ApplyOpsResult {
     pub picture: Array2D<Color>,
     pub only_ops_cost: f64,
+    pub only_colored_top_right: bool,
 }
 
 pub fn gen_start_field(test_case: &TestCase) -> Array2D<Color> {
@@ -47,6 +49,7 @@ pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
     let mut cost = 0.0;
 
     let mut last_rect_id = test_case.regions.len() - 1;
+    let mut only_colored_top_right = true;
     for op in ops.iter() {
         match op {
             Op::CutPoint(id, p) => {
@@ -83,6 +86,9 @@ pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
                     for y in r.from.y..r.to.y {
                         a[x as usize][y as usize] = *color;
                     }
+                }
+                if r.to != p(n, m) {
+                    only_colored_top_right = false;
                 }
                 cost += (COLOR_COST * canvas_size / r.size()).round();
             }
@@ -131,5 +137,6 @@ pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
     ApplyOpsResult {
         picture: a,
         only_ops_cost: cost,
+        only_colored_top_right,
     }
 }

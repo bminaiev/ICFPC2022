@@ -1,14 +1,11 @@
 use std::cmp::min;
-use std::time::Instant;
 
-use algo_lib::io::output::output;
-use algo_lib::io::output::set_global_output_to_stdout;
+use algo_lib::dbg;
 use algo_lib::iters::shifts::SHIFTS_8;
 use algo_lib::misc::rand::Random;
 use algo_lib::misc::simulated_annealing::SearchFor;
 use algo_lib::misc::simulated_annealing::SimulatedAnnealing;
 use algo_lib::{collections::array_2d::Array2D, misc::min_max::UpdateMinMax};
-use algo_lib::{dbg, out, out_line};
 
 use crate::color_corner::color_corner;
 use crate::interpreter::gen_start_field;
@@ -17,6 +14,7 @@ use crate::ops_by_rects::gen_ops_by_solution_rects;
 use crate::solver::SolutionRes;
 use crate::test_case::TestCase;
 use crate::utils::p;
+use crate::Point;
 use crate::{
     color::Color,
     interpreter::apply_ops,
@@ -24,7 +22,6 @@ use crate::{
     pixel_dist::{get_pixel_distance, PIXEL_DIST_COEF},
     solver::SolutionRect,
 };
-use crate::{test_case, Point};
 
 fn color_dist(colors: &[Color], my: Color) -> f64 {
     let mut res = 0.0;
@@ -163,7 +160,6 @@ fn shrink_rects(rects: &mut Vec<SolutionRect>, n: usize, m: usize) {
 pub fn optimize_colors(
     rects: &[SolutionRect],
     ops: &[Op],
-    start_whole_id: usize,
     test_case: &TestCase,
     merge_result: &MergeResult,
 ) -> SolutionRes {
@@ -231,7 +227,6 @@ pub fn optimize_positions(
     expected: &Array2D<Color>,
     rects: &[SolutionRect],
     rnd: &mut Random,
-    start_whole_id: usize,
     test_case: &TestCase,
 ) -> SolutionRes {
     let mut rects = rects.to_vec();
@@ -373,7 +368,7 @@ pub fn optimize_positions(
         expected_score: final_res2.only_ops_cost + pixel_dist3,
     };
     dbg!("after local shift optimizations", r.expected_score);
-    let after_local = optimize_colors(&rects, &r.ops, start_whole_id, test_case, &merge_result);
+    let after_local = optimize_colors(&rects, &r.ops, test_case, &merge_result);
     let diff = start_score - after_local.expected_score;
     dbg!(
         "after color optimizations",

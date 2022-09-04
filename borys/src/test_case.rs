@@ -26,6 +26,8 @@ pub struct Region {
     pub rect: Rect,
     pub color: Color,
 }
+
+#[derive(Clone)]
 pub struct TestCase {
     pub expected: Array2D<Color>,
     pub regions: Vec<Region>,

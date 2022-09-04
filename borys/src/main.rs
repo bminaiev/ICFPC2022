@@ -10,6 +10,7 @@ use crate::{
     ops_by_rects::gen_rects_by_ops,
     pixel_dist::get_pixel_distance,
     readings::{read_case, read_submit},
+    rotator::Rotator,
     savings::{save_image, save_ops, save_score, save_solution},
     solver::{solve_one, SolutionRes},
 };
@@ -24,6 +25,7 @@ mod ops_by_rects;
 mod pixel_dist;
 mod readings;
 mod rect_id;
+mod rotator;
 mod savings;
 mod solver;
 mod test_case;
@@ -68,25 +70,30 @@ fn solve_fast(task_id: usize) {
 fn local_optimize(test_id: usize) {
     let mut rnd = Random::new_time_seed();
     let start = Instant::now();
-    let test_case = read_case(test_id);
-    let ops = read_submit(&format!("../outputs/{}.isl", test_id));
-    {
-        // maybe we downloaded something better than we have locally? Update score
-        let sol = SolutionRes::new_from_ops(&test_case, &ops);
-        save_solution(test_id, &sol);
-    }
-    let start_whole_id = 0;
-    let expected = &test_case.expected;
-    let rects = gen_rects_by_ops(&ops, expected.len(), expected[0].len());
-    let new_sol = optimize_positions(&expected, &rects, &mut rnd, start_whole_id, &test_case);
+
+    let mut rotator = {
+        let test_case = read_case(test_id);
+        let ops = read_submit(&format!("../outputs/{}.isl", test_id));
+        {
+            // maybe we downloaded something better than we have locally? Update score
+            let sol = SolutionRes::new_from_ops(&test_case, &ops);
+            save_solution(test_id, &sol);
+        }
+        Rotator::new(&test_case, &ops)
+    };
+    let expected = &rotator.test_case.expected;
+    let rects = gen_rects_by_ops(&rotator.ops, expected.len(), expected[0].len());
+    let new_sol_before_rotation =
+        optimize_positions(&expected, &rects, &mut rnd, &rotator.test_case);
+    let new_sol = rotator.rotate_sol(new_sol_before_rotation);
     save_solution(test_id, &new_sol);
     dbg!(start.elapsed());
 }
 
 fn main() {
     // solve_all();
-    const TEST_ID: usize = 29;
-    solve_fast(TEST_ID);
+    const TEST_ID: usize = 16;
+    local_optimize(TEST_ID);
     if true {
         return;
     }
