@@ -1453,8 +1453,7 @@ void solveOpt() {
                 }
 
             if (!cidsInRegion.empty()) break;
-          }          
-          cerr << "[" << ri << ", " << rj << "] corners in region: " << cidsInRegion.size() << endl;
+          }
           // cerr << "passed " << GetTime() - v << "s\n";
 
           bool impr = false;
@@ -1546,7 +1545,7 @@ void solveOpt() {
                     }
                 }
             // cerr << it % 3 << " op, passed " << GetTime() - v << "s\n";
-          } else { // REM
+          } else if (it > 123) { // REM
             for (int id : cidsInRegion) {
                 int i = corners[id].first;
                 int j = corners[id].second;
@@ -1564,17 +1563,19 @@ void solveOpt() {
           }
 
           const double lambda = 0.8;
+          const double goodWeight = 50;
           if (impr) {
-            regionsWeight[ri][rj] = 15 * lambda + (1 - lambda) * regionsWeight[ri][rj];
+            regionsWeight[ri][rj] = goodWeight * lambda + (1 - lambda) * regionsWeight[ri][rj];
             for (int di = -1; di <= 1; di++)
                 for (int dj = -1; dj <= 1; dj++) {
                     int nri = ri + di;
                     int nrj = rj + dj;
                     if (nri >= 0 && nri < R && nrj >= 0 && nrj < R)
-                        regionsWeight[nri][nrj] = 15 * lambda * lambda + (1 - lambda * lambda) * regionsWeight[ri][rj];
+                        regionsWeight[nri][nrj] = goodWeight * lambda * lambda + (1 - lambda * lambda) * regionsWeight[ri][rj];
                 }
           } else regionsWeight[ri][rj] = 1 * lambda + (1 - lambda) * regionsWeight[ri][rj];
           // cerr << "end, passed " << GetTime() - v << "s\n";
+          // msg << "[" << ri << ", " << rj << "] corners in region: " << cidsInRegion.size();
         }
     };
     if (regionOpt)
