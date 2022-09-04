@@ -692,7 +692,7 @@ void optsWindow() {
                 GetRekt();
             }
             static char buf[128] = {};
-            if (ImGui::Button("Swap solve opt")) {
+            if (ImGui::Button("Swap all")) {
                 stringstream ss(buf);
                 ss >> SWr1 >> SWc1 >> SWr2 >> SWc2 >> SWsr >> SWsc;
                 if ((SWsr == N && SWr1 == 0 && SWr2 == 0) || (SWsc == N && SWc1 == 0 && SWc2 == 0))

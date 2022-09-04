@@ -327,7 +327,7 @@ struct Painter {
         
         for (int i = 0; i < bu.r2 - bu.r1; i++)
             for (int j = 0; j < bu.c2 - bu.c1; j++)
-                swap(clr[bu.r1 + i][bu.c1 + j], clr[bu.r2 + i][bu.c2 + j]);
+                swap(clr[bu.r1 + i][bu.c1 + j], clr[bv.r1 + i][bv.c1 + j]);
         return true;
     }
 
