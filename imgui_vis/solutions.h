@@ -1315,8 +1315,8 @@ void solveOpt() {
         }
         int conts = 0;
         while (!bad) {
-          int ni = i - 1 + rng() % 3;
-          int nj = j - 1 + rng() % 3;
+          int ni = i - 3 + rng() % 7;
+          int nj = j - 3 + rng() % 7;
           if (ni < 0 || nj < 0 || ni >= N || nj >= N || top[ni][nj] == make_pair(ni, nj) || (ni == 0 && nj == 0)) {
             if (++conts > 5) {
               break;
