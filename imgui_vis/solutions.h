@@ -108,6 +108,57 @@ Instruction SwapIns(const string& i1, const string& i2) {
 struct Solution {
     double score;
     vector<Instruction> ins;
+
+    void rotateClockwise() {
+      int last_cut = -1;
+      for (auto& i : ins) {
+        if (i.type == tSplitX) {
+          last_cut = i.type;
+          i.type = tSplitY;
+          i.y = N - i.x;
+          continue;
+        }
+        if (i.type == tSplitY) {
+          last_cut = i.type;
+          i.type = tSplitX;
+          i.x = i.y;
+          continue;
+        }
+        if (i.type == tSplitPoint) {
+          last_cut = i.type;
+          swap(i.x, i.y);
+          i.y = N - i.y;
+          continue;
+        }
+        if (i.type == tColor) {
+          if (last_cut == tSplitX) {
+            i.id.back() ^= 1;
+          }
+          if (last_cut == tSplitPoint) {
+            if (i.id.back() == '0') {
+              i.id.back() = '3';
+            } else {
+              i.id.back() -= 1;
+            }
+          }
+          continue;
+        }
+        if (i.type == tMerge) {
+          if (last_cut == tSplitPoint && i.id.find('.') != string::npos) {
+            if (i.id.back() == '0') {
+              i.id.back() = '3';
+            } else {
+              i.id.back() -= 1;
+            }
+            if (i.oid.back() == '0') {
+              i.oid.back() = '3';
+            } else {
+              i.oid.back() -= 1;
+            }
+          }
+        }
+      }
+    }
 };
 
 struct Painter {
@@ -528,6 +579,25 @@ void solveGena(int S, int mode) {
       return std::chrono::duration_cast<chrono_ms>(fs).count() * 0.001;
     };
     msg.clear() << "Running...";
+    vector<vector<Color>> target_colors(N, vector<Color>(N));
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        target_colors[i][j] = colors[i][j];
+      }
+    }
+    for (int rep = 0; rep < mode; rep++) {
+      vector<vector<Color>> rotated(N, vector<Color>(N));
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+          rotated[j][N - 1 - i] = target_colors[i][j];
+        }
+      }
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+          target_colors[i][j] = rotated[i][j];
+        }
+      }
+    }
     int n = N / S;
     int m = M / S;
     vector<vector<vector<int>>> pref(N + 1, vector<vector<int>>(M + 1, vector<int>(4)));
@@ -537,7 +607,7 @@ void solveGena(int S, int mode) {
           if (i == 0 || j == 0) {
             pref[i][j][k] = 0;
           } else {
-            pref[i][j][k] = pref[i - 1][j][k] + pref[i][j - 1][k] - pref[i - 1][j - 1][k] + colors[i - 1][j - 1][k];
+            pref[i][j][k] = pref[i - 1][j][k] + pref[i][j - 1][k] - pref[i - 1][j - 1][k] + target_colors[i - 1][j - 1][k];
           }
         }
       }
@@ -596,7 +666,7 @@ void solveGena(int S, int mode) {
               int sum = pref[yb * S][xb * S][k] - pref[ya * S][xb * S][k] - pref[yb * S][xa * S][k] + pref[ya * S][xa * S][k];
               paint_into[k] = (2 * sum + area) / (2 * area);
             }
-            long long penalty = 1000 * PaintCost((mode & 1) ? xb : n - xa, (mode & 2) ? yb : m - ya);
+            long long penalty = 1000 * PaintCost(n - xa, m - ya);
             if (penalty < ft) {
               double diff_est = 0;
               if (area >= S) {
@@ -604,7 +674,7 @@ void solveGena(int S, int mode) {
                   int x = xa * S + (int) (rng() % (xb * S - xa * S));
                   int sum_sq = 0;
                   for (int k = 0; k < 4; k++) {
-                    sum_sq += sqr(colors[y][x][k] - paint_into[k]);
+                    sum_sq += sqr(target_colors[y][x][k] - paint_into[k]);
                   }
                   diff_est += SQRT[sum_sq];
                 }
@@ -616,7 +686,7 @@ void solveGena(int S, int mode) {
                   for (int x = xa * S; x < xb * S; x++) {
                     int sum_sq = 0;
                     for (int k = 0; k < 4; k++) {
-                      sum_sq += sqr(colors[y][x][k] - paint_into[k]);
+                      sum_sq += sqr(target_colors[y][x][k] - paint_into[k]);
                     }
                     diff += SQRT[sum_sq];
                   }
@@ -679,7 +749,7 @@ void solveGena(int S, int mode) {
     };
     for (int x = 0; x < n; x++) {
       for (int y = 0; y < m - 1; y++) {
-        if (mode & 2) {
+        if (mode & 0) {
           AddEdge(rect_id[x][y + 1], rect_id[x][y]);
         } else {
           AddEdge(rect_id[x][y], rect_id[x][y + 1]);
@@ -688,7 +758,7 @@ void solveGena(int S, int mode) {
     }
     for (int x = 0; x < n - 1; x++) {
       for (int y = 0; y < m; y++) {
-        if (mode & 1) {
+        if (mode & 0) {
           AddEdge(rect_id[x + 1][y], rect_id[x][y]);
         } else {
           AddEdge(rect_id[x][y], rect_id[x + 1][y]);
@@ -727,7 +797,7 @@ void solveGena(int S, int mode) {
       int yb = rects[i].first[3];
       dp_corners.emplace_back(xa * S, ya * S);
       Color paint_into = rects[i].second;
-      if (mode == 0) {
+      if (mode >= 0) {
         if (xa == 0 && ya == 0) {
           res.ins.push_back(ColorIns(to_string(idx), paint_into));
         }
@@ -757,7 +827,7 @@ void solveGena(int S, int mode) {
           idx += 3;
         }
       }
-      if (mode == 1) {
+/*      if (mode == 1) {
         if (xb == n && ya == 0) {
           res.ins.push_back(ColorIns(to_string(idx), paint_into));
         }
@@ -846,7 +916,11 @@ void solveGena(int S, int mode) {
           res.ins.push_back(MergeIns(to_string(idx + 1), to_string(idx + 2)));
           idx += 3;
         }
-      }
+      }*/
+    }
+
+    for (int rep = 0; rep < mode; rep++) {
+      res.rotateClockwise();
     }
 
     msg << "Duration: " << GetTime() << "s\n";
@@ -863,6 +937,47 @@ void solveOpt() {
       return std::chrono::duration_cast<chrono_ms>(fs).count() * 0.001;
     };
     msg.clear() << "Running...\n";
+    auto myColoredBlocks = coloredBlocks;
+    vector<vector<Color>> target_colors(N, vector<Color>(N));
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        target_colors[i][j] = colors[i][j];
+      }
+    }
+    int mode = 0;
+    while (mode < 4) {
+      bool ok = true;
+      for (auto& block : myColoredBlocks) {
+        if (block.r2 != N || block.c2 != N) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) {
+        break;
+      }
+      for (auto& block : myColoredBlocks) {
+        swap(block.c1, block.r1);
+        block.c1 = N - block.c1;
+        swap(block.c2, block.r2);
+        block.c2 = N - block.c2;
+        swap(block.c1, block.c2);
+      }
+      vector<vector<Color>> rotated(N, vector<Color>(N));
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+          rotated[j][N - 1 - i] = target_colors[i][j];
+        }
+      }
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+          target_colors[i][j] = rotated[i][j];
+        }
+      }
+      mode += 1;
+    }
+    cerr << "mode = " << mode << endl;
+    assert(mode < 4);
     vector<vector<pair<int, int>>> top(N, vector<pair<int, int>>(N));
     vector<vector<list<pair<int, int>>::iterator>> iter(N, vector<list<pair<int, int>>::iterator>(N));
     vector<vector<list<pair<int, int>>>> cells(N, vector<list<pair<int, int>>>(N));
@@ -929,7 +1044,7 @@ void solveOpt() {
         paint_into[i][j] = {0, 0, 0, 0};
         for (auto& cell : cells[i][j]) {
           for (int k = 0; k < 4; k++) {
-            paint_into[i][j][k] += colors[cell.second][cell.first][k];
+            paint_into[i][j][k] += target_colors[cell.second][cell.first][k];
           }
         }
         int area = (int) cells[i][j].size();
@@ -943,12 +1058,12 @@ void solveOpt() {
         for (auto& cell : cells[i][j]) {
           int sum_sq = 0;
           for (int k = 0; k < 4; k++) {
-            sum_sq += sqr(colors[cell.second][cell.first][k] - paint_into[i][j][k]);
+            sum_sq += sqr(target_colors[cell.second][cell.first][k] - paint_into[i][j][k]);
           }
           double coeff = 1.0 / max(1.0, SQRT[sum_sq]);
           sum_coeff += coeff;
           for (int k = 0; k < 4; k++) {
-            aux[k] += colors[cell.second][cell.first][k] * coeff;
+            aux[k] += target_colors[cell.second][cell.first][k] * coeff;
           }
         }
         auto old = paint_into[i][j];
@@ -964,7 +1079,7 @@ void solveOpt() {
       for (auto& cell : cells[i][j]) {
         int sum_sq = 0;
         for (int k = 0; k < 4; k++) {
-          sum_sq += sqr(colors[cell.second][cell.first][k] - paint_into[i][j][k]);
+          sum_sq += sqr(target_colors[cell.second][cell.first][k] - paint_into[i][j][k]);
         }
         diff += SQRT[sum_sq];
       }
@@ -977,7 +1092,7 @@ void solveOpt() {
             for (auto& cell : cells[i][j]) {
               int sum_sq = 0;
               for (int k = 0; k < 4; k++) {
-                sum_sq += sqr(colors[cell.second][cell.first][k] - paint_into[i][j][k]);
+                sum_sq += sqr(target_colors[cell.second][cell.first][k] - paint_into[i][j][k]);
               }
               new_diff += SQRT[sum_sq];
             }
@@ -1104,7 +1219,7 @@ void solveOpt() {
     };
     auto [res, idx] = initialMerge();
     cerr << "total = " << res.score + total << endl;
-    for (auto& block : coloredBlocks) {
+    for (auto& block : myColoredBlocks) {
       if ((block.r1 > 0 || block.c1 > 0) && top[block.c1][block.r1] != make_pair(block.c1, block.r1)) {
         AddCorner(block.c1, block.r1, (int) corners.size());
       }
@@ -1330,6 +1445,10 @@ void solveOpt() {
         res.ins.push_back(MergeIns(to_string(idx + 1), to_string(idx + 2)));
         idx += 3;
       }
+    }
+
+    for (int rep = 0; rep < mode; rep++) {
+      res.rotateClockwise();
     }
 
     res.score += round(best_total * 0.001);
