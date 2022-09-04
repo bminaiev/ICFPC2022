@@ -64,7 +64,7 @@ def print_ultra_cool_tests(test_results):
             opp[test_id] = score
 
     cur = 1
-    cols = 6
+    cols = 5
     col_width = 30
     def pad(text):
         if len(text) > col_width - 2:
