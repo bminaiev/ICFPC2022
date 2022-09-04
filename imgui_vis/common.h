@@ -19,4 +19,4 @@ float T = 0.01;
 int optSeconds = 600;
 bool optRunning;
 bool hardMove;
-bool regionOpt;
+bool regionOpt = true;
