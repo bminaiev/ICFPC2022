@@ -618,13 +618,27 @@ void optsWindow() {
             }
             ImGui::PopStyleColor(2);
 
-            ImGui::SameLine(260);
+            ImGui::SameLine(250);
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.32f, 0.32f, 0.0f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.54f, 0.54f, 0.1f, 1.0f));
             if (ImGui::Button("Hard Move")) {
                 hardMove = true;
             }
             ImGui::PopStyleColor(2);
+
+            ImGui::SameLine(330);
+            if (ImGui::Button("Hard Drop Opt")) {
+                optRunning = true;
+                if (runInMainThread) {
+                    cerr << "Run in main thread!\n";
+                    msg << "This could be run only in thread\n";
+                    // solveOptCycle();
+                } else {
+                    cerr << "Spawn thread!\n";
+                    thread solveThread(solveOptCycle);
+                    solveThread.detach();
+                }
+            }            
 
             ImGui::InputInt("TL, sec", &optSeconds, 1, 10);
             ImGui::Checkbox("Optimize by regions", &regionOpt);

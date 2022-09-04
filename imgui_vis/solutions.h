@@ -1231,7 +1231,7 @@ void solveOpt() {
 
         for (int i = r1; i < r2; i++)
             for (int j = c1; j < c2; j++)
-                if (rng() % 10 == 0) {
+                if (rng() % 7 == 0) {
                     AddCorner(i, j, -1);
                 }
 
@@ -1241,7 +1241,7 @@ void solveOpt() {
         drawC2 = c2;
         cerr << "optimizeHard " << r1 << "," << c1 << " - " << r2 << "," << c2 << ", " << save.size() << " removed:\n";
         cerr << start_total / 1000.0 << " -> " << total / 1000.0;
-        best_total = 1e9;
+        // best_total = 1e9;
         
         for (int it = 0; it < maxIters && optRunning; it++) {
           if (total < best_total) {
@@ -1253,7 +1253,7 @@ void solveOpt() {
             }
           }
           
-          T = 0.1 * (1 - double(it) / maxIters) * (1 - double(it) / maxIters);
+          T = (1 - double(it) / maxIters) * (1 - double(it) / maxIters) * (1 - double(it) / maxIters);
 
           vector<int> cidsInRegion;
           for (size_t id = 0; id < corners.size(); id++)
@@ -1261,9 +1261,10 @@ void solveOpt() {
                 c1 <= corners[id].second && corners[id].second < c2) {
                 cidsInRegion.push_back(id);
             }
+          // cerr << cidsInRegion.size() << "...";
 
           if (corners.size() >= 2 && !cidsInRegion.empty()) {
-            int id = cidsInRegion[rng() % (int) cidsInRegion.size()];
+            int id = cidsInRegion[rng() % (int)cidsInRegion.size()];
             int i = corners[id].first;
             int j = corners[id].second;
             bool bad = false;
@@ -1280,7 +1281,7 @@ void solveOpt() {
             }
           }
           if (!corners.empty() && !cidsInRegion.empty()) {
-            int id = cidsInRegion[rng() % (int) cidsInRegion.size()];
+            int id = cidsInRegion[rng() % (int)cidsInRegion.size()];
             int i = corners[id].first;
             int j = corners[id].second;
             { // MOV
@@ -1289,7 +1290,7 @@ void solveOpt() {
                         if (di != 0 || dj != 0) {
                           int ni = i + di;
                           int nj = j + dj;
-                          if (ni < 0 || nj < 0 || ni >= N || nj >= N || top[ni][nj] == make_pair(ni, nj) || (ni == 0 && nj == 0))
+                          if (ni < r1 || nj < c1 || ni >= r2 || nj >= c2 || top[ni][nj] == make_pair(ni, nj) || (ni == 0 && nj == 0))
                             continue;
                           {
                             int L = 0;
@@ -1340,7 +1341,7 @@ void solveOpt() {
           }
 
           if (!cidsInRegion.empty()) { // REM
-            int id = cidsInRegion[rng() % (int) cidsInRegion.size()];
+            int id = cidsInRegion[rng() % (int)cidsInRegion.size()];
             i = corners[id].first;
             j = corners[id].second;
             auto old_total = total;
@@ -1719,9 +1720,9 @@ void solveOpt() {
                 if (c1 > c2) swap(c1, c2);
                 if (r1 > r2) swap(r1, r2);
                 if (r1 == r2 || c1 == c2) continue;
-                if (r2 - r1 < 10 || c2 - c1 < 10) continue;
-                if ((r2 - r1) * (c2 - c1) > 2345) continue;
-                if ((r2 - r1) * (c2 - c1) < 234) continue;
+                if (r2 - r1 < 40 || c2 - c1 < 40) continue;
+                if ((r2 - r1) * (c2 - c1) > 12345) continue;
+                if ((r2 - r1) * (c2 - c1) < 2555) continue;
 
                 break;
             }
@@ -1789,4 +1790,10 @@ void solveOpt() {
     res.score += round(best_total * 0.001);
     msg.clear() << "Duration: " << GetTime() << "s\n";
     postprocess(res);
+}
+
+void solveOptCycle() {
+    while (optRunning) {
+        solveOpt();
+    }
 }
