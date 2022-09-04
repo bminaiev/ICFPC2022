@@ -155,6 +155,7 @@ void postprocess(Solution& res) {
     }
     msg << "Solved with penalty " << res.score << "\n";
     for (const auto& ins : res.ins) {
+//        cerr << "painter ins: " << ins.text() << endl;
         if (!painter.doInstruction(ins)) {
             msg << "Bad instruction: " << ins.text() << "\n";
             return;

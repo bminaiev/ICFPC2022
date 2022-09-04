@@ -567,6 +567,102 @@ pair<Solution, int> getTwoStepMerge(int blocksPerSide, int blockSize, int lines)
     return {res, nextBlockId - 1};
 }
 
+pair<Solution, int> getThreeStepMerge(int blocksPerSide, int blockSize, int lines1, int lines2) {
+    Solution res;
+    int bid = 0;
+    int nextBlockId = rawBlocks.size();
+    res.score = 0;
+    vector<int> vertBlocks;
+    for (int i = 0; i < lines1; i++) {
+        int prevBlockId = bid;
+        bid++;
+        for (int j = 1; j < blocksPerSide; j++) {
+            res.ins.push_back(MergeIns(to_string(prevBlockId), to_string(bid)));
+            res.score += mergeCost(blockSize, blockSize * j, blockSize);
+            prevBlockId = nextBlockId;
+            nextBlockId++;
+            bid++;
+        }
+        vertBlocks.push_back(prevBlockId);
+    }
+    int prevBlockId = vertBlocks[0];
+    for (size_t i = 1; i < vertBlocks.size(); i++) {
+        res.ins.push_back(MergeIns(to_string(prevBlockId), to_string(vertBlocks[i])));
+        res.score += mergeCost(N, blockSize * i, blockSize);
+        prevBlockId = nextBlockId;
+        nextBlockId++;
+    }
+
+    string curId = to_string(nextBlockId - 1);
+    vector<string> horIds;
+    for (int i = 1; i <= lines2; i++) {
+        res.ins.push_back(SplitYIns(curId, i * N / blocksPerSide));
+        res.score += splitLineCost(lines1 * blockSize, (blocksPerSide - i + 1) * blockSize);
+        horIds.push_back(curId + ".0");
+        curId += ".1";
+    }
+    auto rest1 = curId;
+    assert((int)horIds.size() == lines2);
+ 
+    for (int i = lines1; i < blocksPerSide; i++) {
+        for (int j = 0; j < lines2; j++) {
+            bid = i * blocksPerSide + j;
+            res.ins.push_back(MergeIns(horIds[j], to_string(bid)));
+            res.score += mergeCost(blockSize, blockSize * i, blockSize);
+            horIds[j] = to_string(nextBlockId);
+            nextBlockId++;
+        }
+    }
+
+    string prevHorId = horIds[0];
+    for (int i = 1; i < lines2; i++) {
+        res.ins.push_back(MergeIns(horIds[i], prevHorId));
+        res.score += mergeCost(N, blockSize * i, blockSize);
+        prevHorId = to_string(nextBlockId);
+        nextBlockId++;
+    }
+
+    curId = prevHorId;
+    vector<string> verIds(blocksPerSide);
+    for (int i = blocksPerSide - 1; i >= lines1; i--) {
+        res.ins.push_back(SplitXIns(curId, i * N / blocksPerSide));
+        res.score += splitLineCost(lines2 * blockSize, (i + 1) * blockSize);
+        verIds[i] = curId + ".1";
+        curId += ".0";
+    }
+    auto rest2 = curId;
+
+    for (int i = lines1; i < blocksPerSide; i++) {
+        for (int j = lines2; j < blocksPerSide; j++) {
+            bid = i * blocksPerSide + j;
+            res.ins.push_back(MergeIns(verIds[i], to_string(bid)));
+            res.score += mergeCost(blockSize, blockSize * j, blockSize);
+            verIds[i] = to_string(nextBlockId);
+            nextBlockId++;
+        }
+    }
+
+    string prevVerId = verIds.back();
+    for (int i = blocksPerSide - 2; i >= lines1; i--) {
+        res.ins.push_back(MergeIns(verIds[i], prevVerId));
+        res.score += mergeCost(N, blockSize * (blocksPerSide - 1 - i), blockSize);
+        prevVerId = to_string(nextBlockId);
+        nextBlockId++;
+    }
+
+    auto rest3 = prevVerId;
+
+    res.ins.push_back(MergeIns(rest1, rest2));
+    res.score += mergeCost(lines1 * blockSize, lines2 * blockSize, (blocksPerSide - lines2) * blockSize);
+    nextBlockId++;
+
+    res.ins.push_back(MergeIns(to_string(nextBlockId - 1), rest3));
+    res.score += mergeCost(N, lines1 * blockSize, (blocksPerSide - lines1) * blockSize);
+    nextBlockId++;
+
+    return {res, nextBlockId - 1};
+}
+
 pair<Solution, int> initialMerge() {
     Solution res;
     int blocksPerSide = round(sqrt(rawBlocks.size()));
@@ -606,7 +702,18 @@ pair<Solution, int> initialMerge() {
             nextBlockId = cur.second + 1;
         }
     }
-
+    
+    for (int lines1 = 1; lines1 < blocksPerSide; lines1++) {
+        for (int lines2 = 1; lines2 < blocksPerSide; lines2++) {
+            auto cur = getThreeStepMerge(blocksPerSide, blockSize, lines1, lines2);
+            if (cur.first.score < res.score) {
+                cerr << "three-step-merge better with " << lines1 << " and " << lines2 << " lines: " << res.score << " -> " << cur.first.score << endl;
+                res = cur.first;
+                nextBlockId = cur.second + 1;
+            }
+        }
+    }
+    
     return {res, nextBlockId - 1};
 }
 
@@ -792,7 +899,9 @@ void solveGena(int S, int mode) {
       rects.emplace_back(array<int, 4>{xa, ya, xb, yb}, paint_into);
     };
     Reconstruct(0, 0, n, m);
-    auto [res, idx] = initialMerge();
+    auto [res_pref, idx] = initialMerge();
+    Solution res;
+    res.score = res_pref.score;
     res.score += dp[aux[0][n]][aux[0][m]] / 1000;
     int rect_cnt = (int) rects.size();
     vector<vector<int>> graph(rect_cnt);
@@ -888,6 +997,7 @@ void solveGena(int S, int mode) {
     for (int rep = 0; rep < mode; rep++) {
       res.rotateClockwise();
     }
+    res.ins.insert(res.ins.begin(), res_pref.ins.begin(), res_pref.ins.end());
 
     msg << "Duration: " << GetTime() << "s\n";
     postprocess(res);
@@ -1165,9 +1275,9 @@ void solveOpt() {
       total -= cost[i][j];
       cost[i][j] = 0;
     };
-    auto ri = initialMerge();
-    auto res = ri.first;
-    auto idx = ri.second;
+    auto [res_pref, idx] = initialMerge();
+    Solution res;
+    res.score = res_pref.score;
     cerr << "total = " << res.score + total << endl;
     for (auto& block : myColoredBlocks) {
       if ((block.r1 > 0 || block.c1 > 0) && top[block.c1][block.r1] != make_pair(block.c1, block.r1)) {
@@ -1758,6 +1868,8 @@ void solveOpt() {
     for (int rep = 0; rep < mode; rep++) {
       res.rotateClockwise();
     }
+
+    res.ins.insert(res.ins.begin(), res_pref.ins.begin(), res_pref.ins.end());
 
     res.score += round(best_total * 0.001);
     msg.clear() << "Duration: " << GetTime() << "s\n";
