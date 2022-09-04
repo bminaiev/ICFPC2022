@@ -30,6 +30,7 @@ pub struct Region {
 #[derive(Clone)]
 pub struct TestCase {
     pub expected: Array2D<Color>,
+    pub start_field: Array2D<Color>,
     pub regions: Vec<Region>,
     pub test_id: usize,
 }

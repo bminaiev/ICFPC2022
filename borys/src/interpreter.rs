@@ -22,17 +22,18 @@ pub struct ApplyOpsResult {
 }
 
 pub fn gen_start_field(test_case: &TestCase) -> Array2D<Color> {
-    let n = test_case.expected.len();
-    let m = test_case.expected[0].len();
-    let mut a = Array2D::new(Color::default(), n, m);
-    for region in test_case.regions.iter() {
-        for x in region.rect.from.x..region.rect.to.x {
-            for y in region.rect.from.y..region.rect.to.y {
-                a[x as usize][y as usize] = region.color;
-            }
-        }
-    }
-    a
+    test_case.start_field.clone()
+    // let n = test_case.expected.len();
+    // let m = test_case.expected[0].len();
+    // let mut a = Array2D::new(Color::default(), n, m);
+    // for region in test_case.regions.iter() {
+    //     for x in region.rect.from.x..region.rect.to.x {
+    //         for y in region.rect.from.y..region.rect.to.y {
+    //             a[x as usize][y as usize] = region.color;
+    //         }
+    //     }
+    // }
+    // a
 }
 
 pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {

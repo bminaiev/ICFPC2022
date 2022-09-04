@@ -82,12 +82,16 @@ fn rotate_ops_cw(ops: &[Op], n: usize) -> Vec<Op> {
 fn rotate_tc_cw(test_case: &TestCase) -> TestCase {
     let (n, m) = test_case.get_size();
     assert_eq!(n, m);
-    let mut new_expected = Array2D::new(Color::default(), m, n);
-    for x in 0..n {
-        for y in 0..m {
-            new_expected[y][n - 1 - x] = test_case.expected[x][y];
+
+    let rotate_field = |a: &Array2D<Color>| -> Array2D<Color> {
+        let mut new_a = Array2D::new(Color::default(), m, n);
+        for x in 0..n {
+            for y in 0..m {
+                new_a[y][n - 1 - x] = a[x][y];
+            }
         }
-    }
+        new_a
+    };
 
     let rotate_point = |x: i32, y: i32| -> Point { Point::new(y, n as i32 - x) };
 
@@ -107,9 +111,10 @@ fn rotate_tc_cw(test_case: &TestCase) -> TestCase {
         .collect();
 
     TestCase {
-        expected: new_expected,
+        expected: rotate_field(&test_case.expected),
         regions: new_regions,
         test_id: test_case.test_id,
+        start_field: rotate_field(&test_case.start_field),
     }
 }
 

@@ -99,7 +99,6 @@ pub fn read_case(test_id: usize) -> TestCase {
     let mut input = Input::new_file(format!("../inputs/{}.txt", test_id));
     let m = input.usize();
     let n = input.usize();
-    let mut expected = Array2D::new(Color::default(), n, m);
 
     let read_color = |input: &mut Input| -> Color {
         let mut res = Color::default();
@@ -109,11 +108,17 @@ pub fn read_case(test_id: usize) -> TestCase {
         res
     };
 
-    for i in 0..m {
-        for j in 0..n {
-            expected[j][i] = read_color(&mut input);
+    let read_field = |input: &mut Input| -> Array2D<Color> {
+        let mut res = Array2D::new(Color::default(), n, m);
+        for i in 0..m {
+            for j in 0..n {
+                res[j][i] = read_color(input);
+            }
         }
-    }
+        res
+    };
+
+    let expected = read_field(&mut input);
     let mut regions = vec![];
     let n_regions = input.usize();
     for _ in 0..n_regions {
@@ -127,9 +132,11 @@ pub fn read_case(test_id: usize) -> TestCase {
             color,
         });
     }
+    let start_field = read_field(&mut input);
     TestCase {
         expected,
         regions,
         test_id,
+        start_field,
     }
 }
