@@ -111,6 +111,7 @@ fn find_solution(
     max_next_y_blocks: usize,
     smaller_sol: Option<Box<Solution>>,
     rnd: &mut Random,
+    test_case: &TestCase,
 ) -> Solution {
     let n = expected.len();
     let m = expected[0].len();
@@ -196,7 +197,7 @@ fn find_solution(
                         let best_color =
                             color_picker.pick_color(p(x_start, y_start), p(x_end, y_end));
                         let cost_to_color =
-                            color_corner(n, m, p(x_start, y_start), 0, best_color).cost;
+                            color_corner(n, m, p(x_start, y_start), 0, best_color, test_case).cost;
                         let estimated_pixel_dist = estimate_pixel_distance_range_one_color(
                             best_color,
                             expected,
@@ -359,6 +360,7 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
             MAX_NEXT_BLOCKS,
             None,
             &mut rnd,
+            test_case,
         )))
     } else {
         None
@@ -373,6 +375,7 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
         MAX_NEXT_BLOCKS,
         smallest_solution,
         &mut rnd,
+        test_case,
     );
     // dbg!("small solution done!");
     let solution = find_solution(
@@ -384,6 +387,7 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
         blocks_m,
         Some(Box::new(small_solution)),
         &mut rnd,
+        test_case,
     );
 
     let mut rects = vec![];
@@ -393,7 +397,7 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
 
     let after_merge_ops_applied = apply_ops(&merge_result.ops, test_case);
     let merge_cost = after_merge_ops_applied.only_ops_cost;
-    let all_ops: Vec<Op> = gen_ops_by_solution_rects(&rects, n, m, &merge_result);
+    let all_ops: Vec<Op> = gen_ops_by_solution_rects(&rects, n, m, &merge_result, test_case);
     // let mut all_ops = merge_result.ops;
     // all_ops.extend(rect_ops);
     // for r in rects.iter() {

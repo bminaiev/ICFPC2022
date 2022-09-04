@@ -109,6 +109,7 @@ fn rotate_tc_cw(test_case: &TestCase) -> TestCase {
     TestCase {
         expected: new_expected,
         regions: new_regions,
+        test_id: test_case.test_id,
     }
 }
 

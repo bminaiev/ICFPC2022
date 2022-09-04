@@ -197,7 +197,7 @@ pub fn optimize_colors(
     // dbg!(final_res.only_ops_cost + new_pixel_dist);
 
     shrink_rects(&mut new_rects, n, m);
-    let new_ops = gen_ops_by_solution_rects(&new_rects, n, m, merge_result);
+    let new_ops = gen_ops_by_solution_rects(&new_rects, n, m, merge_result, test_case);
     let final_res2 = apply_ops(&new_ops, test_case);
     let pixel_dist3 = get_pixel_distance(&final_res2.picture, &expected);
     // dbg!(final_res2.only_ops_cost + pixel_dist3);
@@ -214,7 +214,7 @@ fn score_by_rects(rects: &[SolutionRect], test_case: &TestCase, merge_cost: f64)
     let mut ops_cost = 0.0;
     let (n, m) = test_case.get_size();
     for r in rects.iter() {
-        ops_cost += color_corner(n, m, r.from, 0, r.color).cost;
+        ops_cost += color_corner(n, m, r.from, 0, r.color, test_case).cost;
     }
     ops_cost + pixel_dist + merge_cost
 }
@@ -358,7 +358,7 @@ pub fn optimize_positions(
     dbg!(my_score);
 
     shrink_rects(&mut rects, n, m);
-    let new_ops = gen_ops_by_solution_rects(&rects, n, m, &merge_result);
+    let new_ops = gen_ops_by_solution_rects(&rects, n, m, &merge_result, test_case);
     let final_res2 = apply_ops(&new_ops, test_case);
     let pixel_dist3 = get_pixel_distance(&final_res2.picture, &expected);
     // dbg!(final_res2.only_ops_cost + pixel_dist3);

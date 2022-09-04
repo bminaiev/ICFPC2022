@@ -31,10 +31,27 @@ pub struct Region {
 pub struct TestCase {
     pub expected: Array2D<Color>,
     pub regions: Vec<Region>,
+    pub test_id: usize,
 }
 
 impl TestCase {
     pub fn get_size(&self) -> (usize, usize) {
         (self.expected.len(), self.expected[0].len())
+    }
+
+    pub fn get_line_cut_cost(&self) -> f64 {
+        if self.test_id <= 35 {
+            7.0
+        } else {
+            2.0
+        }
+    }
+
+    pub fn get_point_cut_cost(&self) -> f64 {
+        if self.test_id <= 35 {
+            10.0
+        } else {
+            3.0
+        }
     }
 }

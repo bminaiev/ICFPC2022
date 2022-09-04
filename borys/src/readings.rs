@@ -127,5 +127,9 @@ pub fn read_case(test_id: usize) -> TestCase {
             color,
         });
     }
-    TestCase { expected, regions }
+    TestCase {
+        expected,
+        regions,
+        test_id,
+    }
 }

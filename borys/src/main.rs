@@ -92,15 +92,17 @@ fn local_optimize(test_id: usize) {
 
 fn main() {
     // solve_all();
-    const TEST_ID: usize = 16;
-    local_optimize(TEST_ID);
-    if true {
-        return;
+    const TEST_ID: usize = 40;
+    loop {
+        local_optimize(TEST_ID);
     }
+    // if true {
+    //     return;
+    // }
     // loop {
     //     dbg!("NEXT ITERATION!!!");
     loop {
-        for test_id in 1..=25 {
+        for test_id in 1..=TEST_ID {
             dbg!(test_id);
             // loop {
             local_optimize(test_id);

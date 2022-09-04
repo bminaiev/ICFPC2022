@@ -1,7 +1,8 @@
 use algo_lib::collections::array_2d::Array2D;
 
 use crate::{
-    color_corner::color_corner, merger::MergeResult, op::Op, solver::SolutionRect, utils::p, Point,
+    color_corner::color_corner, merger::MergeResult, op::Op, solver::SolutionRect,
+    test_case::TestCase, utils::p, Point,
 };
 
 pub fn gen_ops_by_solution_rects(
@@ -9,6 +10,7 @@ pub fn gen_ops_by_solution_rects(
     field_n: usize,
     field_m: usize,
     merge_result: &MergeResult,
+    test_case: &TestCase,
 ) -> Vec<Op> {
     let mut res = merge_result.ops.clone();
     let n = rects.len();
@@ -52,7 +54,7 @@ pub fn gen_ops_by_solution_rects(
     let mut cur_whole_id = merge_result.last_block_id;
     for &rect_id in queue.iter() {
         let r = rects[rect_id];
-        let to_color = color_corner(field_n, field_m, r.from, cur_whole_id, r.color);
+        let to_color = color_corner(field_n, field_m, r.from, cur_whole_id, r.color, test_case);
         res.extend(to_color.ops);
         cur_whole_id = to_color.cur_whole_id;
     }

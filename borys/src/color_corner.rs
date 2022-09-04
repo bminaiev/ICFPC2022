@@ -2,9 +2,10 @@ use algo_lib::misc::float_min_max::{fmax, fmin};
 
 use crate::{
     color::Color,
-    consts::{COLOR_COST, LINE_CUT_COST, MERGE_COST, POINT_CUT_COST},
+    consts::{COLOR_COST, MERGE_COST},
     op::Op,
     rect_id::{rect_id_from_usize, rect_id_sub_key},
+    test_case::TestCase,
     Point,
 };
 
@@ -20,6 +21,7 @@ pub fn color_corner(
     p: Point,
     cur_whole_id: usize,
     color: Color,
+    test_case: &TestCase,
 ) -> ColorToCorner {
     let main_id = rect_id_from_usize(cur_whole_id);
     let full_area = (n as f64) * (m as f64);
@@ -52,7 +54,7 @@ pub fn color_corner(
             ));
 
             return ColorToCorner {
-                cost: LINE_CUT_COST
+                cost: test_case.get_line_cut_cost()
                     + (COLOR_COST * full_area / s2).round()
                     + (MERGE_COST * full_area / fmax(s1, s2)).round(),
                 ops,
@@ -70,7 +72,7 @@ pub fn color_corner(
             ));
 
             return ColorToCorner {
-                cost: LINE_CUT_COST
+                cost: test_case.get_line_cut_cost()
                     + (COLOR_COST * full_area / s2).round()
                     + (MERGE_COST * full_area / fmax(s3, s2)).round(),
                 ops,
@@ -114,7 +116,7 @@ pub fn color_corner(
     ));
     let merge_back = fmin(merge_y_first, merge_x_first);
     ColorToCorner {
-        cost: POINT_CUT_COST + (COLOR_COST * full_area / s2).round() + merge_back,
+        cost: test_case.get_point_cut_cost() + (COLOR_COST * full_area / s2).round() + merge_back,
         ops,
         cur_whole_id: cur_whole_id + 3,
     }

@@ -7,7 +7,7 @@ use algo_lib::{collections::array_2d::Array2D, misc::float_min_max::fmax};
 
 use crate::{
     color::Color,
-    consts::{COLOR_COST, LINE_CUT_COST, MERGE_COST, POINT_CUT_COST},
+    consts::{COLOR_COST, MERGE_COST},
     op::Op,
     rect_id::{rect_id_from_usize, rect_id_sub_key},
     test_case::{Rect, TestCase},
@@ -78,7 +78,7 @@ pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
                     Rect::new(Point::new(x1, y2), Point::new(x2, y3)),
                 );
                 rects.remove(id);
-                cost += (POINT_CUT_COST * canvas_size / r.size()).round();
+                cost += (test_case.get_point_cut_cost() * canvas_size / r.size()).round();
             }
             Op::Color(id, color) => {
                 let r = *rects.get(id).unwrap();
@@ -103,7 +103,7 @@ pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
                     Rect::new(Point::new(r.from.x, *split_y), r.to),
                 );
                 rects.remove(id);
-                cost += (LINE_CUT_COST * canvas_size / r.size()).round();
+                cost += (test_case.get_line_cut_cost() * canvas_size / r.size()).round();
             }
             Op::CutX(id, split_x) => {
                 let r = *rects.get(id).unwrap();
@@ -116,7 +116,7 @@ pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
                     Rect::new(Point::new(*split_x, r.from.y), r.to),
                 );
                 rects.remove(id);
-                cost += (LINE_CUT_COST * canvas_size / r.size()).round();
+                cost += (test_case.get_line_cut_cost() * canvas_size / r.size()).round();
             }
             Op::Merge(id1, id2) => {
                 let r1 = *rects.get(id1).unwrap();

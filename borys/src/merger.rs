@@ -1,14 +1,11 @@
-use algo_lib::{
-    dbg,
-    misc::{group_by::GroupByTrait, min_max::UpdateMinMax},
-};
+use algo_lib::dbg;
 
 use crate::{
-    consts::{LINE_CUT_COST, MERGE_COST},
+    consts::MERGE_COST,
     interpreter::apply_ops,
     op::Op,
     rect_id::{rect_id_from_usize, rect_id_sub_key, rect_id_to_usize, RectId},
-    test_case::TestCase,
+    test_case::{self, TestCase},
 };
 
 pub struct MergeResult {
@@ -39,11 +36,11 @@ fn merge_cost(rect_size: usize, n: usize) -> f64 {
     (MERGE_COST * canvas_size / rect_size).round()
 }
 
-fn line_cut_cost(rect_size: usize, n: usize) -> f64 {
+fn line_cut_cost(rect_size: usize, n: usize, test_case: &TestCase) -> f64 {
     let n = n as f64;
     let rect_size = rect_size as f64;
     let canvas_size = n * n;
-    (LINE_CUT_COST * canvas_size / rect_size).round()
+    (test_case.get_line_cut_cost() * canvas_size / rect_size).round()
 }
 
 fn merge_line_cost(block_size: usize, n: usize) -> f64 {
@@ -57,7 +54,12 @@ fn merge_line_cost(block_size: usize, n: usize) -> f64 {
     res
 }
 
-fn calc_best_merge_cost_fixed_first_lines(block_size: usize, n: usize, first_lines: usize) -> f64 {
+fn calc_best_merge_cost_fixed_first_lines(
+    block_size: usize,
+    n: usize,
+    first_lines: usize,
+    test_case: &TestCase,
+) -> f64 {
     let line_cost = merge_line_cost(block_size, n);
     let tot_blocks = n / block_size;
     let mut res = line_cost * (first_lines as f64);
@@ -66,7 +68,7 @@ fn calc_best_merge_cost_fixed_first_lines(block_size: usize, n: usize, first_lin
     }
     let mut cur_rect_size = first_lines * block_size * n;
     for _col in 1..tot_blocks {
-        res += line_cut_cost(cur_rect_size, n);
+        res += line_cut_cost(cur_rect_size, n, test_case);
         cur_rect_size -= first_lines * block_size * block_size;
     }
     assert_eq!(cur_rect_size, first_lines * block_size * block_size);
@@ -81,11 +83,12 @@ fn calc_best_merge_cost_fixed_first_lines(block_size: usize, n: usize, first_lin
     res
 }
 
-fn calc_best_merge_cost(block_size: usize, n: usize) -> f64 {
+fn calc_best_merge_cost(block_size: usize, n: usize, test_case: &TestCase) -> f64 {
     let mut res = std::f64::MAX;
     let tot_blocks = n / block_size;
     for first_lines in 1..=tot_blocks {
-        let cur_cost = calc_best_merge_cost_fixed_first_lines(block_size, n, first_lines);
+        let cur_cost =
+            calc_best_merge_cost_fixed_first_lines(block_size, n, first_lines, test_case);
         dbg!(first_lines, cur_cost);
         if cur_cost < res {
             res = cur_cost;
