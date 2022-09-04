@@ -72,6 +72,7 @@ unordered_map<int, int> myScores;
 double scale = 1;
 double shiftX, shiftY;
 bool showCorners;
+int SWr1, SWc1, SWr2, SWc2, SWsr, SWsc;
 
 Input readInput(const string& fname) {
     Input res;
@@ -117,8 +118,40 @@ Input readInputAndStoreAsGlobal(const string& fname) {
 
 void postprocess(Solution& res) {
     painter = Painter(N, M, rawBlocks);
-    while (!res.ins.empty() && res.ins.back().type != tColor) {
-      res.ins.pop_back();
+    if (SWsr == 0 && SWsc == 0) {
+        while (!res.ins.empty() && res.ins.back().type != tColor) {
+          res.ins.pop_back();
+        }
+    } else {
+        if (SWsr == N) {
+            assert(res.ins.back().type == tMerge);
+            int last = max(stoi(res.ins.back().id), stoi(res.ins.back().oid)) + 1;
+            string lastId = to_string(last);
+            if (SWc1 > SWc2) swap(SWc1, SWc2);
+            assert(SWc1 == 0);
+            res.ins.push_back(SplitXIns(lastId, SWc1 + SWsc));
+            res.ins.push_back(SplitXIns(lastId + ".1", SWc2));
+            res.ins.push_back(SplitXIns(lastId + ".1.1", SWc2 + SWsc));
+            res.ins.push_back(SwapIns(lastId + ".1.1.0", lastId + ".0"));
+            // res.ins.push_back(MergeIns(lastId + ".1.0", lastId + ".0"));
+            // ++last;
+            // res.ins.push_back(MergeIns(lastId + ".1.1.0", to_string(last)));
+            // ++last;
+            // res.ins.push_back(MergeIns(lastId + ".1.1.1", to_string(last)));
+        } else if (SWsc == N) {
+            assert(res.ins.back().type == tMerge);
+            int last = max(stoi(res.ins.back().id), stoi(res.ins.back().oid)) + 1;
+            string lastId = to_string(last);
+            if (SWr1 > SWr2) swap(SWr1, SWr2);
+            assert(SWr1 == 0);
+            res.ins.push_back(SplitYIns(lastId, SWr1 + SWsr));
+            res.ins.push_back(SplitYIns(lastId + ".1", SWr2));
+            res.ins.push_back(SplitYIns(lastId + ".1.1", SWr2 + SWsr));
+            res.ins.push_back(SwapIns(lastId + ".1.1.0", lastId + ".0"));
+        } else {
+            cerr << "Not Supported!\n";
+            throw 42;
+        }
     }
     msg << "Solved with penalty " << res.score << "\n";
     for (const auto& ins : res.ins) {
@@ -234,6 +267,7 @@ void downloadSolution(int testId) {
     Input in = readInputAndStoreAsGlobal(inputsPath + to_string(currentTestId) + ".txt");
     auto [sol, _] = loadSolution(in, solutionsPath + to_string(currentTestId) + ".txt");
     postprocess(sol);
+    myScores[testId] = sol.score;
     cerr << "downloaded and loaded sol for test " << testId << " with score " << sol.score << endl;
 }
 
@@ -646,6 +680,28 @@ void optsWindow() {
             ImGui::Checkbox("Hard Rect Optimize", &hardRects);
             ImGui::SameLine(350);
             ImGui::InputInt("HardIters", &hardIters, 1, 100000000);
+
+            ImGui::SetNextItemWidth(80);
+            ImGui::InputInt("RS", &RS, 1, 400); 
+            ImGui::SameLine(123);
+            if (ImGui::Button("Get rekt")) {
+                GetRekt();
+            }
+            static char buf[128] = {};
+            if (ImGui::Button("Swap solve opt")) {
+                stringstream ss(buf);
+                ss >> SWr1 >> SWc1 >> SWr2 >> SWc2 >> SWsr >> SWsc;
+                if ((SWsr == N && SWr1 == 0 && SWr2 == 0) || (SWsc == N && SWc1 == 0 && SWc2 == 0))
+                    swapRects(SWr1, SWc1, SWr2, SWc2, SWsr, SWsc);
+                else {
+                    msg << "Need to be stripe!\n";
+                    SWsr = SWsc = 0;
+                }
+            }
+            ImGui::SameLine(123);
+            ImGui::SetNextItemWidth(234);
+            ImGui::InputText("r1 c1 r2 c2 sr sc", buf, IM_ARRAYSIZE(buf));
+
 
             ImGui::Text("%s\n%s", msg.s.str().c_str(), requestResult.c_str());
         }

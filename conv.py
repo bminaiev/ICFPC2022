@@ -1,11 +1,13 @@
 from PIL import Image
-import os, json
+import os, json, sys
 
 image_dir = "images/"
 inputs_dir = "inputs/"
 jsons_dir = "initial/"
 for f in sorted(os.listdir(image_dir), key=lambda s: int(s[:s.find('.')])):
     if 'initial' in f:
+        continue
+    if len(sys.argv) > 1 and (sys.argv[1] + ".png") not in f:
         continue
     fname = image_dir + f
     print(fname + "...")

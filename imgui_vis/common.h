@@ -23,3 +23,4 @@ bool regionOpt = true;
 bool hardRects;
 int drawR1, drawR2, drawC1, drawC2;
 int hardIters = 5000;
+int RS = 10;

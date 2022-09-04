@@ -313,50 +313,21 @@ struct Painter {
         return true;
     }
 
-    bool doSwap(const string& , const string& ) {
-        return false;
-        /*
+    bool doSwap(const string& i1, const string& i2) {
+        return true;
         if (blocks.find(i1) == blocks.end() || blocks.find(i2) == blocks.end())
             return false;
 
         const auto& bu = blocks[i1];
         const auto& bv = blocks[i2];
-        opsScore += round(1.0 * N * M / max((bu.r2 - bu.r1) * (bu.c2 - bu.c1),
-                                            (bv.r2 - bv.r1) * (bv.c2 - bv.c1)));
-        Block nb;
-        if (bu.r2 == bv.r1 || bu.r1 == bv.r2) {
-            if (bu.c1 == bv.c1 && bu.c2 == bv.c2) {
-                if (bu.r2 == bv.r1) {
-                    nb = bu;
-                    nb.r2 = bv.r2;
-                } else {
-                    nb = bv;
-                    nb.r2 = bu.r2;
-                }
-            } else {
-                return false;
-            }
-        }
-
-        if (bu.c2 == bv.c1 || bu.c1 == bv.c2) {
-            if (bu.r1 == bv.r1 && bu.r2 == bv.r2) {
-                if (bu.c2 == bv.c1) {
-                    nb = bu;
-                    nb.c2 = bv.c2;
-                } else {
-                    nb = bv;
-                    nb.c2 = bu.c2;
-                }
-            } else {
-                return false;
-            }
-        }
-
-        blocks.erase(blocks.find(i1));
-        blocks.erase(blocks.find(i2));
-        lastBlockId++;
-        blocks[to_string(lastBlockId)] = nb;
-        */
+        if (bu.r2 - bu.r1 != bv.r2 - bv.r1 || bu.c2 - bu.c1 != bv.c2 - bv.c1)
+            return false;
+        opsScore += round(costs.swap * N * M / max((bu.r2 - bu.r1) * (bu.c2 - bu.c1),
+                                                   (bv.r2 - bv.r1) * (bv.c2 - bv.c1)));
+        
+        for (int i = 0; i < bu.r2 - bu.r1; i++)
+            for (int j = 0; j < bu.c2 - bu.c1; j++)
+                swap(clr[bu.r1 + i][bu.c1 + j], clr[bu.r2 + i][bu.c2 + j]);
         return true;
     }
 
@@ -574,7 +545,7 @@ pair<Solution, int> getTwoStepMerge(int blocksPerSide, int blockSize, int lines)
     }
     horIds.push_back(curId);
     assert((int)horIds.size() == blocksPerSide);
- 
+
     for (int i = lines; i < blocksPerSide; i++) {
         for (int j = 0; j < blocksPerSide; j++) {
             res.ins.push_back(MergeIns(horIds[j], to_string(bid)));
@@ -626,10 +597,11 @@ pair<Solution, int> initialMerge() {
         nextBlockId++;
     }
 
+    cerr << "blocksPerSide: " << blocksPerSide << endl;
     for (int lines = 1; lines < blocksPerSide; lines++) {
         auto cur = getTwoStepMerge(blocksPerSide, blockSize, lines);
         if (cur.first.score < res.score) {
-            cerr << "two-step-merge better: " << res.score << " -> " << cur.first.score << endl;
+            cerr << "two-step-merge better with " << lines << " lines: " << res.score << " -> " << cur.first.score << endl;
             res = cur.first;
             nextBlockId = cur.second + 1;
         }
@@ -719,7 +691,7 @@ void solveGena(int S, int mode) {
     for (int i = 0; i <= MAX_D; i++) {
       SQRT[i] = sqrt(i);
     }
-    
+
     {
       assert(N == M);
       int tmp = 0;
@@ -1242,7 +1214,7 @@ void solveOpt() {
         cerr << "optimizeHard " << r1 << "," << c1 << " - " << r2 << "," << c2 << ", " << save.size() << " removed:\n";
         cerr << start_total / 1000.0 << " -> " << total / 1000.0;
         // best_total = 1e9;
-        
+
         for (int it = 0; it < maxIters && optRunning; it++) {
           if (total < best_total) {
             best_total = total;
@@ -1252,7 +1224,7 @@ void solveOpt() {
               rects.emplace_back(p, paint_into[p.first][p.second]);
             }
           }
-          
+
           T = (1 - double(it) / maxIters) * (1 - double(it) / maxIters) * (1 - double(it) / maxIters);
 
           vector<int> cidsInRegion;
@@ -1795,5 +1767,89 @@ void solveOpt() {
 void solveOptCycle() {
     while (optRunning) {
         solveOpt();
+    }
+}
+
+double distColor(const Color& a, const Color& b) {
+    return sqrt(
+        sqr(a[0] - b[0]) +
+        sqr(a[1] - b[1]) +
+        sqr(a[2] - b[2]) +
+        sqr(a[3] - b[3])
+    );
+}
+
+void GetRekt() {
+    set<pair<int, int>> used;
+    for (const auto& b : coloredBlocks) {
+        if (b.r2 != N || b.c2 != N) {
+            msg << "Sorry, only topright\n";
+            return;
+        }
+        used.insert(make_pair(b.r1, b.c1));
+    }
+    /*for (int i = 2; i < N; i++)
+        for (int j = 2; j < N; j++)
+            if (used.find(make_pair(i, j)) == used.end()) {
+                double diffI = (distColor(colors[i][j], colors[i-1][j]) +
+                               distColor(colors[i][j], colors[i-2][j])) / 2;
+                double diffJ = (distColor(colors[i][j], colors[i][j-1]) +
+                               distColor(colors[i][j], colors[i][j-2])) / 2;
+                if (diffI > 150 && diffJ > 150) {
+                    coloredBlocks.push_back(Block{i, j, N, N, colors[i][j]});
+                    int idx = coloredBlocks.size() - 1;
+                    while (idx > 0 && (coloredBlocks[idx].r1 < coloredBlocks[idx - 1].r1 || coloredBlocks[idx].c1 < coloredBlocks[idx - 1].c1)) {
+                        swap(coloredBlocks[idx], coloredBlocks[idx - 1]);
+                        idx--;
+                    }
+                }
+            }*/
+    for (int i = RS; i < N; i += RS)
+        for (int j = RS; j < N; j += RS)
+            if (used.find(make_pair(i, j)) == used.end()) {
+                Color sum;
+                for (int q = 0; q < 4; q++) sum[q] = 0;
+                int total = 0;
+                for (int di = 0; di < RS; di++)
+                    for (int dj = 0; dj < RS; dj++)
+                        if (i + di < N && j + dj < N) {
+                            total++;
+                            for (int q = 0; q < 4; q++)
+                                sum[q] += colors[i+di][j+dj][q];
+                        }
+                Color c;
+                for (int q = 0; q < 4; q++) c[q] = sum[q] / total;
+
+                coloredBlocks.push_back(Block{i, j, N, N, c});
+                int idx = coloredBlocks.size() - 1;
+                while (idx > 0 && (coloredBlocks[idx].r1 < coloredBlocks[idx - 1].r1 || coloredBlocks[idx].c1 < coloredBlocks[idx - 1].c1)) {
+                    swap(coloredBlocks[idx], coloredBlocks[idx - 1]);
+                    idx--;
+                }
+            }
+}
+
+void swapRects(int r1, int c1, int r2, int c2, int sr, int sc) {
+    for (int i = 0; i < sr; i++)
+        for (int j = 0; j < sc; j++)
+            swap(colors[r1+i][c1+j], colors[r2+i][c2+j]);
+
+    for (auto& b : coloredBlocks) {
+        if (r1 <= b.r1 && b.r1 < r1 + sr && c1 <= b.c1 && b.c1 < c1 + sc) {
+            b.r1 = b.r1 - r1 + r2;
+            b.c1 = b.c1 - c1 + c2;
+        }
+        if (r2 <= b.r1 && b.r1 < r2 + sr && c2 <= b.c1 && b.c1 < c2 + sc) {
+            b.r1 = b.r1 - r2 + r1;
+            b.c1 = b.c1 - c2 + c1;
+        }
+    }
+
+    for (size_t j = 1; j < coloredBlocks.size(); j++) {
+        int idx = j;
+        while (idx > 0 && (coloredBlocks[idx].r1 < coloredBlocks[idx - 1].r1 || coloredBlocks[idx].c1 < coloredBlocks[idx - 1].c1)) {
+            swap(coloredBlocks[idx], coloredBlocks[idx - 1]);
+            idx--;
+        }
     }
 }
