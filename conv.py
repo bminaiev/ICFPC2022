@@ -10,6 +10,12 @@ for f in sorted(os.listdir(image_dir), key=lambda s: int(s[:s.find('.')])):
     fname = image_dir + f
     print(fname + "...")
     img = Image.open(fname)
+    img_initial = None
+    try:
+        img_initial = Image.open(fname.replace(".png", ".initial.png"))
+    except Exception as e:
+        print(e)
+        print("Will use [255, 255, 255, 255] as initial")
     w, h = img.size
     js = json.load(open(jsons_dir + f.replace("png", "json")))
     assert(w == js['width'])
@@ -25,3 +31,14 @@ for f in sorted(os.listdir(image_dir), key=lambda s: int(s[:s.find('.')])):
         for i, b in enumerate(js['blocks']):
             assert(int(b['blockId']) == i)
             fout.write(f"{b['blockId']} " + " ".join(map(str, b['bottomLeft'] + b["topRight"] + (b["color"] if "color" in b else [255, 255, 255, 255]))) + "\n")
+
+        for y in range(h):
+            for x in range(w):
+                fout.write(" ".join(map(str, img_initial.getpixel((x, h - 1 - y)) if img_initial is not None else [255, 255, 255, 255])) + " ")
+            fout.write("\n")
+
+        if int(f[:f.find('.')]) in [36, 37, 38, 39, 40]:
+            fout.write("2 3 5 3 1\n")
+        else:
+            fout.write("7 10 5 3 1\n")
+
