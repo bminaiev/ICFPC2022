@@ -829,7 +829,7 @@ void solveGena(int S, int mode) {
               int sum = pref[yb * S][xb * S][k] - pref[ya * S][xb * S][k] - pref[yb * S][xa * S][k] + pref[ya * S][xa * S][k];
               paint_into[k] = (2 * sum + area) / (2 * area);
             }
-            long long penalty = 1000 * PaintCost(n - xa, m - ya);
+            long long penalty = 1000 * PaintCost(N - xa * S, M - ya * S);
             if (penalty < ft) {
               double diff_est = 0;
               if (area >= S) {
