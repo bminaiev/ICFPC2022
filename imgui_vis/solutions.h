@@ -679,6 +679,7 @@ int splitLineCost(int s) {
 pair<Solution, int> linesMerge() {
     const int B = round(sqrt(rawBlocks.size()));
     const int BS = N / B;
+    const int BSq = BS * BS;
     assert(N == M);
 
     vector<vector<string>> blocks(B, vector<string>(B));
@@ -687,6 +688,7 @@ pair<Solution, int> linesMerge() {
             blocks[i][j] = to_string(i + j * B);
 
     Solution res;
+    res.score = 0;
     int nextBlockId = B * B;
 
     auto getSize = [&](const string& ii) {
@@ -694,7 +696,7 @@ pair<Solution, int> linesMerge() {
         for (int i = 0; i < B; i++)
             for (int j = 0; j < B; j++)
                 cnt += blocks[i][j] == ii;
-        return cnt;
+        return cnt * BSq;
     };
 
     auto makeMerge = [&](string i1, string i2) {
@@ -729,6 +731,8 @@ pair<Solution, int> linesMerge() {
                 }
     };
 
+    cerr << "! " << res.score << endl;
+
     auto makeSplitY = [&](string ii, int val) {
         res.ins.push_back(SplitYIns(ii, val * BS));
         res.score += splitLineCost(getSize(ii));
@@ -746,10 +750,13 @@ pair<Solution, int> linesMerge() {
 
     for (int i = 2; i < B; i++) {
         makeMerge(blocks[i][0], blocks[i-1][0]);
+        cerr << "! " << res.score << endl;
     }
     for (int i = 2; i < B; i++) {
         makeMerge(blocks[0][i], blocks[0][i-1]);
     }
+
+    cerr << "! " << res.score << endl;
 
     for (int w = 1; w < B - 1; w++) {
         makeSplitX(blocks[w-1][w], w + 1);
@@ -759,6 +766,8 @@ pair<Solution, int> linesMerge() {
         makeSplitY(blocks[w][w], w);
         makeMerge(blocks[w][w], blocks[w][w-1]);
         makeMerge(blocks[w-1][w], blocks[w-1][w-1]);
+
+        cerr << "! " << w << res.score << endl;
         
         makeSplitY(blocks[w][w], w + 1);
         for (int j = w + 1; j < B; j++)
@@ -782,6 +791,7 @@ pair<Solution, int> linesMerge() {
 
         makeMerge(blocks[w][w], blocks[w-1][w]);
         makeMerge(blocks[w][w+1], blocks[w-1][w+1]);
+        cerr << "! last " << w << res.score << endl;
     }
 
     makeMerge(blocks[B-1][B-1], blocks[B-2][B-1]);
@@ -791,6 +801,7 @@ pair<Solution, int> linesMerge() {
     // for (const auto& i : res.ins)
     //     cerr << i.text() << endl;
 
+    cerr << "lines merge score: " << res.score << endl;
     return {res, nextBlockId - 1};
 }
 
