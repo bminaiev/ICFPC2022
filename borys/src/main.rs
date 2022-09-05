@@ -5,6 +5,7 @@ use algo_lib::{dbg, geometry::point::PointT, misc::rand::Random};
 mod color;
 
 use crate::{
+    analyze::analyze,
     interpreter::apply_ops,
     local_optimizations::{optimize_colors, optimize_positions},
     ops_by_rects::gen_rects_by_ops,
@@ -14,7 +15,9 @@ use crate::{
     rotator::Rotator,
     savings::{save_image, save_ops, save_score, save_solution},
     solver::{solve_one, SolutionRes},
+    task40::task40,
 };
+mod analyze;
 mod color_corner;
 mod color_picker;
 mod consts;
@@ -30,6 +33,7 @@ mod rect_id;
 mod rotator;
 mod savings;
 mod solver;
+mod task40;
 mod test_case;
 mod utils;
 
@@ -122,6 +126,58 @@ fn really_local_optimize(test_id: usize) {
     dbg!(start.elapsed());
 }
 
+fn analyze_here(test_id: usize) {
+    let mut rnd = Random::new_time_seed();
+    let start = Instant::now();
+
+    let start_test_case = read_case(test_id);
+    let rotator = {
+        let ops = read_submit(&format!("../outputs/{}.isl", test_id));
+        {
+            // maybe we downloaded something better than we have locally? Update score
+            let sol = SolutionRes::new_from_ops(&start_test_case, &ops);
+            save_solution(test_id, &sol);
+        }
+        Rotator::new(&start_test_case, &ops)
+    };
+    let expected = &rotator.test_case.expected;
+    let rects = gen_rects_by_ops(&rotator.ops, expected.len(), expected[0].len());
+    let new_sol_before_rotation = analyze(
+        &rects,
+        &mut rnd,
+        &rotator.test_case,
+        &rotator,
+        &start_test_case,
+    );
+    let new_sol = rotator.rotate_sol(new_sol_before_rotation);
+    save_solution(test_id, &new_sol);
+    dbg!(start.elapsed());
+}
+
+fn task40_solver() {
+    let test_id = 40;
+    let mut rnd = Random::new_time_seed();
+    let start = Instant::now();
+
+    let start_test_case = read_case(test_id);
+    let rotator = {
+        let ops = read_submit(&format!("../outputs/{}.isl", 205)); // good constant!
+        Rotator::new(&start_test_case, &ops)
+    };
+    let expected = &rotator.test_case.expected;
+    let rects = gen_rects_by_ops(&rotator.ops, expected.len(), expected[0].len());
+    let new_sol_before_rotation = task40(
+        &rects,
+        &mut rnd,
+        &rotator.test_case,
+        &rotator,
+        &start_test_case,
+    );
+    // let new_sol = rotator.rotate_sol(new_sol_before_rotation);
+    // save_solution(test_id, &new_sol);
+    // dbg!(start.elapsed());
+}
+
 fn main() {
     let args: Vec<_> = std::env::args().collect();
     dbg!(args);
@@ -132,9 +188,16 @@ fn main() {
         return;
     }
 
+    {
+        task40_solver();
+        if true {
+            return;
+        }
+    }
+
     // solve_all();
-    // const TEST_ID: usize = 24;
-    // really_local_optimize(TEST_ID);
+    // const TEST_ID: usize = 40;
+    // analyze_here(TEST_ID);
     // if true {
     //     return;
     // }
@@ -146,11 +209,11 @@ fn main() {
     // loop {
     //     dbg!("NEXT ITERATION!!!");
     loop {
-        let bad_tests = [4, 5, 40, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35];
-        for test_id in 1..=40 {
-            if bad_tests.contains(&test_id) {
-                continue;
-            }
+        // let bad_tests = [4, 5, 40, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35];
+        for &test_id in [9, 38, 39].iter() {
+            // if bad_tests.contains(&test_id) {
+            //     continue;
+            // }
             dbg!(test_id);
             // loop {
             local_optimize(test_id);

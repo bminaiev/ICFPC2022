@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 use algo_lib::dbg;
 
 use crate::{
@@ -200,4 +202,39 @@ pub fn merge(test_case: &TestCase) -> MergeResult {
     dbg!("expected merge cost", best_res.expected_score);
 
     best_res
+}
+
+pub fn some_math(test_case: &TestCase) {
+    let n = 400;
+
+    let mut sum = 0.0;
+    let block_size = 20;
+    let tot_blocks = n / block_size;
+    for x in 1..=tot_blocks {
+        for y in 1..=tot_blocks {
+            if x == 1 && y == 1 {
+                continue;
+            }
+            let sz = max(x, y) - 1;
+            sum += merge_cost(sz * block_size * block_size, n);
+        }
+    }
+    for line in 2..=tot_blocks {
+        sum += 2.0 * merge_cost((line - 1) * block_size * n, n);
+    }
+    for cnt in 1..tot_blocks {
+        let mut here = 0.0;
+        here += line_cut_cost(cnt * block_size * n, n, test_case);
+        here += line_cut_cost(
+            max(cnt + 1, n - cnt) * block_size * cnt * block_size,
+            n,
+            test_case,
+        );
+        here += merge_cost(cnt * block_size * block_size * max(cnt, n - cnt), n);
+        sum += 2.0 * here;
+    }
+
+    dbg!(sum);
+
+    unreachable!();
 }
