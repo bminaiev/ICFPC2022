@@ -8,78 +8,22 @@ use algo_lib::misc::simulated_annealing::SimulatedAnnealing;
 use algo_lib::{collections::array_2d::Array2D, misc::min_max::UpdateMinMax};
 
 use crate::color_corner::color_corner;
+use crate::color_picker::estimate_best_color;
+use crate::color_picker::find_best_color;
 use crate::interpreter::gen_start_field;
 use crate::merger::{merge, MergeResult};
 use crate::ops_by_rects::gen_ops_by_solution_rects;
 use crate::solver::SolutionRes;
 use crate::test_case::TestCase;
+use crate::utils::is_point_inside;
 use crate::utils::p;
-use crate::Point;
 use crate::{
-    color::Color,
-    interpreter::apply_ops,
-    op::Op,
-    pixel_dist::{get_pixel_distance, PIXEL_DIST_COEF},
+    color::Color, interpreter::apply_ops, op::Op, pixel_dist::get_pixel_distance,
     solver::SolutionRect,
 };
 
-fn color_dist(colors: &[Color], my: Color) -> f64 {
-    let mut res = 0.0;
-    for c in colors.iter() {
-        res += c.dist(&my);
-    }
-    res * PIXEL_DIST_COEF
-}
-
-fn find_best_color(colors: &[Color], mut my: Color) -> Color {
-    let start_dist = color_dist(colors, my);
-    let mut cur_best_dist = start_dist;
-    loop {
-        let mut changed = false;
-        for it in 0..4 {
-            for delta in [-1, 1].iter() {
-                let cur_color = my.0[it] as i32;
-                let check = cur_color + delta;
-                if check >= 0 && check <= 255 {
-                    let mut try_color = my.clone();
-                    try_color.0[it] = check as u8;
-                    let new_dist = color_dist(colors, try_color);
-                    if new_dist < cur_best_dist {
-                        cur_best_dist = new_dist;
-                        changed = true;
-                        my = try_color;
-                    }
-                }
-            }
-        }
-        if !changed {
-            break;
-        }
-    }
-    // dbg!(start_dist, cur_best_dist);
-    my
-}
-
-fn estimate_best_color(colors: &[Color]) -> Color {
-    let mut sum = vec![0.0; 4];
-    for c in colors.iter() {
-        for i in 0..4 {
-            sum[i] += c.0[i] as f64;
-        }
-    }
-    let mut res = Color::default();
-    for i in 0..4 {
-        let x = (sum[i] / (colors.len() as f64)).round();
-        assert!(x >= 0.0);
-        assert!(x <= 255.0);
-        res.0[i] = x as u8;
-    }
-    // dbg!(start_dist, cur_best_dist);
-    res
-}
-
 #[inline(never)]
-fn gen_field_by_rects(rects: &[SolutionRect], test_case: &TestCase) -> Array2D<Color> {
+pub fn gen_field_by_rects(rects: &[SolutionRect], test_case: &TestCase) -> Array2D<Color> {
     let mut my = gen_start_field(test_case);
     let (n, m) = test_case.get_size();
     let by_ids = colored_by_rect(rects, n, m);
@@ -94,7 +38,7 @@ fn gen_field_by_rects(rects: &[SolutionRect], test_case: &TestCase) -> Array2D<C
 }
 
 #[inline(never)]
-fn colored_by_rect(rects: &[SolutionRect], n: usize, m: usize) -> Array2D<usize> {
+pub fn colored_by_rect(rects: &[SolutionRect], n: usize, m: usize) -> Array2D<usize> {
     let mut res = Array2D::new(std::usize::MAX, n, m);
     for (r_id, r) in rects.iter().enumerate() {
         res[r.from.x as usize][r.from.y as usize] = r_id;
@@ -115,7 +59,7 @@ fn colored_by_rect(rects: &[SolutionRect], n: usize, m: usize) -> Array2D<usize>
 }
 
 #[inline(never)]
-fn get_covered_pixels_if_add_new_rect(
+pub fn get_covered_pixels_if_add_new_rect(
     old_colored: &Array2D<usize>,
     x_start: usize,
     y_start: usize,
@@ -140,7 +84,7 @@ fn get_covered_pixels_if_add_new_rect(
     res
 }
 
-fn shrink_rects(rects: &mut Vec<SolutionRect>, n: usize, m: usize) {
+pub fn shrink_rects(rects: &mut Vec<SolutionRect>, n: usize, m: usize) {
     let colored_by_rects = colored_by_rect(&rects, n, m);
     for r in rects.iter_mut() {
         r.to = r.from;
@@ -205,10 +149,11 @@ pub fn optimize_colors(
         ops: new_ops,
         a: final_res2.picture,
         expected_score: final_res2.only_ops_cost + pixel_dist3,
+        last_block_id: final_res2.last_block_id.clone(),
     }
 }
 
-fn score_by_rects(rects: &[SolutionRect], test_case: &TestCase, merge_cost: f64) -> f64 {
+pub fn score_by_rects(rects: &[SolutionRect], test_case: &TestCase, merge_cost: f64) -> f64 {
     let my = gen_field_by_rects(&rects, test_case);
     let pixel_dist = get_pixel_distance(&my, &test_case.expected);
     let mut ops_cost = 0.0;
@@ -219,19 +164,13 @@ fn score_by_rects(rects: &[SolutionRect], test_case: &TestCase, merge_cost: f64)
     ops_cost + pixel_dist + merge_cost
 }
 
-fn is_point_inside(p: Point, n: usize, m: usize) -> bool {
-    p.x >= 0 && p.y >= 0 && (p.x as usize) < n && (p.y as usize) < m
-}
-
 pub fn optimize_positions(
-    expected: &Array2D<Color>,
     rects: &[SolutionRect],
     rnd: &mut Random,
     test_case: &TestCase,
 ) -> SolutionRes {
     let mut rects = rects.to_vec();
-    let n = expected.len();
-    let m = expected[0].len();
+    let (n, m) = test_case.get_size();
 
     let merge_result = merge(test_case);
     let merge_cost = apply_ops(&merge_result.ops, test_case).only_ops_cost;
@@ -315,7 +254,7 @@ pub fn optimize_positions(
                     &old_colored_by_rect,
                     new_from.x as usize,
                     new_from.y as usize,
-                    expected,
+                    &test_case.expected,
                     idx,
                 );
 
@@ -360,12 +299,13 @@ pub fn optimize_positions(
     shrink_rects(&mut rects, n, m);
     let new_ops = gen_ops_by_solution_rects(&rects, n, m, &merge_result, test_case);
     let final_res2 = apply_ops(&new_ops, test_case);
-    let pixel_dist3 = get_pixel_distance(&final_res2.picture, &expected);
+    let pixel_dist3 = get_pixel_distance(&final_res2.picture, &test_case.expected);
     // dbg!(final_res2.only_ops_cost + pixel_dist3);
     let r = SolutionRes {
         ops: new_ops,
         a: final_res2.picture,
         expected_score: final_res2.only_ops_cost + pixel_dist3,
+        last_block_id: final_res2.last_block_id,
     };
     dbg!("after local shift optimizations", r.expected_score);
     let after_local = optimize_colors(&rects, &r.ops, test_case, &merge_result);

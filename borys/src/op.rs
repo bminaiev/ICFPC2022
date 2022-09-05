@@ -9,6 +9,7 @@ pub enum Op {
     CutY(RectId, i32),
     CutX(RectId, i32),
     Merge(RectId, RectId),
+    Swap(RectId, RectId),
 }
 
 impl core::fmt::Debug for Op {
@@ -36,6 +37,11 @@ impl core::fmt::Debug for Op {
             }
             Self::Merge(arg0, arg1) => f.write_fmt(format_args!(
                 "merge [{}] [{}]",
+                vec2str(&arg0),
+                vec2str(&arg1)
+            )),
+            Self::Swap(arg0, arg1) => f.write_fmt(format_args!(
+                "swap [{}] [{}]",
                 vec2str(&arg0),
                 vec2str(&arg1)
             )),

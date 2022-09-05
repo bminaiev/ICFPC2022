@@ -16,6 +16,8 @@ use crate::{
         estimate_pixel_distance_range_one_color, get_pixel_distance,
         get_pixel_distance_range_one_color, EstimateResult,
     },
+    really_local_optimizations::StripeSwap,
+    rect_id::{rect_id_sub_key, RectId},
     test_case::TestCase,
     utils::p,
     Point,
@@ -29,7 +31,7 @@ enum BestWay {
     SolveRec,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SolutionRect {
     pub from: Point,
     pub to: Point,
@@ -296,6 +298,7 @@ pub struct SolutionRes {
     pub a: Array2D<Color>,
     pub expected_score: f64,
     pub ops: Vec<Op>,
+    pub last_block_id: RectId,
 }
 
 impl SolutionRes {
@@ -306,7 +309,48 @@ impl SolutionRes {
             expected_score: res.only_ops_cost
                 + get_pixel_distance(&res.picture, &test_case.expected),
             a: res.picture,
+            last_block_id: res.last_block_id.clone(),
         }
+    }
+
+    pub fn add_stripe_swap(&mut self, stripe: &StripeSwap, test_case: &TestCase) {
+        dbg!("add...", stripe);
+        let n = test_case.get_size().0;
+        let mut first_id = RectId::default();
+        let mut second_id = RectId::default();
+
+        let id = |v: &[usize]| -> RectId {
+            let mut cur = self.last_block_id.clone();
+            for x in v.iter() {
+                cur = rect_id_sub_key(&cur, *x);
+            }
+            cur
+        };
+
+        if stripe.by_x {
+            todo!();
+        } else {
+            if stripe.first_line == 0 {
+                self.ops.push(Op::CutY(id(&[]), stripe.cnt_lines as i32));
+                first_id = id(&[0]);
+                self.ops.push(Op::CutY(id(&[1]), stripe.second_line as i32));
+                if stripe.second_line + stripe.cnt_lines == n {
+                    second_id = id(&[1, 1]);
+                } else {
+                    self.ops.push(Op::CutY(
+                        id(&[1, 1]),
+                        (stripe.second_line + stripe.cnt_lines) as i32,
+                    ));
+                    second_id = id(&[1, 1, 0]);
+                }
+            } else {
+                todo!();
+            }
+        }
+
+        assert!(first_id != RectId::default());
+        assert!(second_id != RectId::default());
+        self.ops.push(Op::Swap(first_id, second_id))
     }
 }
 
@@ -432,5 +476,6 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
         a: my_picture,
         expected_score: score_without_merge + merge_cost,
         ops: all_ops,
+        last_block_id: ops_res.last_block_id,
     }
 }

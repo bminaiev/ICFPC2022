@@ -10,6 +10,7 @@ use crate::{
     ops_by_rects::gen_rects_by_ops,
     pixel_dist::get_pixel_distance,
     readings::{read_case, read_submit},
+    really_local_optimizations::really_optimize_positions,
     rotator::Rotator,
     savings::{save_image, save_ops, save_score, save_solution},
     solver::{solve_one, SolutionRes},
@@ -24,6 +25,7 @@ mod op;
 mod ops_by_rects;
 mod pixel_dist;
 mod readings;
+mod really_local_optimizations;
 mod rect_id;
 mod rotator;
 mod savings;
@@ -33,10 +35,13 @@ mod utils;
 
 type Point = PointT<i32>;
 
-fn solve_case(test_id: usize, block_size: usize, use_third_layer: bool) {
-    let test_case = read_case(test_id);
-    let solution = solve_one(&test_case, block_size, use_third_layer);
-    save_solution(test_id, &solution);
+fn solve_case(test_id: usize, block_size: usize, use_third_layer: bool, rotations: i32) {
+    let rotator = {
+        let test_case = read_case(test_id);
+        Rotator::new_fixed_rotations(&test_case, rotations)
+    };
+    let solution = solve_one(&rotator.test_case, block_size, use_third_layer);
+    save_solution(test_id, &rotator.rotate_sol(solution));
 }
 
 // fn show_case(test_id: usize) {
@@ -55,7 +60,7 @@ fn solve_all() {
         for task_id in 1..=25 {
             dbg!(task_id, block_size);
             let start = Instant::now();
-            solve_case(task_id, block_size, true);
+            solve_case(task_id, block_size, true, 0);
             dbg!(start.elapsed());
         }
     }
@@ -63,7 +68,7 @@ fn solve_all() {
 
 fn solve_fast(task_id: usize) {
     let start = Instant::now();
-    solve_case(task_id, 20, false);
+    solve_case(task_id, 20, false, 3);
     dbg!(start.elapsed());
 }
 
@@ -71,7 +76,7 @@ fn local_optimize(test_id: usize) {
     let mut rnd = Random::new_time_seed();
     let start = Instant::now();
 
-    let mut rotator = {
+    let rotator = {
         let test_case = read_case(test_id);
         let ops = read_submit(&format!("../outputs/{}.isl", test_id));
         {
@@ -83,8 +88,35 @@ fn local_optimize(test_id: usize) {
     };
     let expected = &rotator.test_case.expected;
     let rects = gen_rects_by_ops(&rotator.ops, expected.len(), expected[0].len());
-    let new_sol_before_rotation =
-        optimize_positions(&expected, &rects, &mut rnd, &rotator.test_case);
+    let new_sol_before_rotation = optimize_positions(&rects, &mut rnd, &rotator.test_case);
+    let new_sol = rotator.rotate_sol(new_sol_before_rotation);
+    save_solution(test_id, &new_sol);
+    dbg!(start.elapsed());
+}
+
+fn really_local_optimize(test_id: usize) {
+    let mut rnd = Random::new_time_seed();
+    let start = Instant::now();
+
+    let start_test_case = read_case(test_id);
+    let rotator = {
+        let ops = read_submit(&format!("../outputs/{}.isl", test_id));
+        {
+            // maybe we downloaded something better than we have locally? Update score
+            let sol = SolutionRes::new_from_ops(&start_test_case, &ops);
+            save_solution(test_id, &sol);
+        }
+        Rotator::new(&start_test_case, &ops)
+    };
+    let expected = &rotator.test_case.expected;
+    let rects = gen_rects_by_ops(&rotator.ops, expected.len(), expected[0].len());
+    let new_sol_before_rotation = really_optimize_positions(
+        &rects,
+        &mut rnd,
+        &rotator.test_case,
+        &rotator,
+        &start_test_case,
+    );
     let new_sol = rotator.rotate_sol(new_sol_before_rotation);
     save_solution(test_id, &new_sol);
     dbg!(start.elapsed());
@@ -92,12 +124,15 @@ fn local_optimize(test_id: usize) {
 
 fn main() {
     // solve_all();
-    const TEST_ID: usize = 40;
-    // loop {
-    //     local_optimize(TEST_ID);
-    // }
+    const TEST_ID: usize = 5;
+    really_local_optimize(TEST_ID);
     // if true {
     //     return;
+    // }
+    // solve_fast(TEST_ID);
+    // solve_case(TEST_ID, 4, true, 2);
+    // loop {
+    //     local_optimize(TEST_ID);
     // }
     // loop {
     //     dbg!("NEXT ITERATION!!!");

@@ -50,6 +50,7 @@ fn rotate_ops_cw(ops: &[Op], n: usize) -> Vec<Op> {
                     }
                     Op::Merge(_, _) => {}
                     Op::Color(_, _) => {}
+                    Op::Swap(_, _) => {}
                 };
                 Op::Color(rect_id_from_vec(&id_vec), *color)
             }
@@ -73,6 +74,7 @@ fn rotate_ops_cw(ops: &[Op], n: usize) -> Vec<Op> {
                     Op::Merge(id1.clone(), id2.clone())
                 }
             }
+            Op::Swap(_, _) => todo!(),
         };
         new_ops.push(converted_op);
     }
@@ -140,14 +142,39 @@ impl Rotator {
         unreachable!("Bad ops. Can't rotate :(");
     }
 
+    pub fn new_fixed_rotations(test_case: &TestCase, rotations: i32) -> Self {
+        let mut test_case = test_case.clone();
+        let (n, m) = test_case.get_size();
+        assert!(n == m);
+        for rotated in 0..rotations {
+            test_case = rotate_tc_cw(&test_case);
+        }
+        return Self {
+            test_case,
+            ops: vec![],
+            rotated: rotations,
+        };
+    }
+
     pub(crate) fn rotate_sol(&self, before_rotation: SolutionRes) -> SolutionRes {
-        let more_rotations = (4 - self.rotated) % 4;
         let mut ops = before_rotation.ops;
         let mut test_case = self.test_case.clone();
-        for _ in 0..more_rotations {
+        for _ in 0..self.rotations_to_answer() {
             ops = rotate_ops_cw(&ops, test_case.get_size().0);
             test_case = rotate_tc_cw(&test_case);
         }
         SolutionRes::new_from_ops(&test_case, &ops)
+    }
+
+    pub fn get_initial_test_case(&self) -> TestCase {
+        let mut test_case = self.test_case.clone();
+        for _ in 0..self.rotations_to_answer() {
+            test_case = rotate_tc_cw(&test_case);
+        }
+        test_case
+    }
+
+    pub fn rotations_to_answer(&self) -> i32 {
+        (4 - self.rotated) % 4
     }
 }

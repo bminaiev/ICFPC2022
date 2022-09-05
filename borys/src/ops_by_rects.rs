@@ -76,6 +76,7 @@ pub fn gen_rects_by_ops(ops: &[Op], n: usize, m: usize) -> Vec<SolutionRect> {
             Op::CutY(_, y) => last_point = Point::new(0, *y),
             Op::CutX(_, x) => last_point = Point::new(*x, 0),
             Op::Merge(_, _) => {}
+            Op::Swap(_, _) => {}
         }
     }
     res

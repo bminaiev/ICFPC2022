@@ -41,7 +41,7 @@ impl TestCase {
     }
 
     pub fn get_line_cut_cost(&self) -> f64 {
-        if self.test_id <= 35 {
+        if self.test_id <= 35 || self.test_id > 40 {
             7.0
         } else {
             2.0
@@ -49,7 +49,7 @@ impl TestCase {
     }
 
     pub fn get_point_cut_cost(&self) -> f64 {
-        if self.test_id <= 35 {
+        if self.test_id <= 35 || self.test_id > 40 {
             10.0
         } else {
             3.0

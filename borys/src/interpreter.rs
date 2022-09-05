@@ -7,9 +7,9 @@ use algo_lib::{collections::array_2d::Array2D, misc::float_min_max::fmax};
 
 use crate::{
     color::Color,
-    consts::{COLOR_COST, MERGE_COST},
+    consts::{COLOR_COST, MERGE_COST, SWAP_COST},
     op::Op,
-    rect_id::{rect_id_from_usize, rect_id_sub_key},
+    rect_id::{rect_id_from_usize, rect_id_sub_key, RectId},
     test_case::{Rect, TestCase},
     utils::p,
     Point,
@@ -19,6 +19,7 @@ pub struct ApplyOpsResult {
     pub picture: Array2D<Color>,
     pub only_ops_cost: f64,
     pub only_colored_top_right: bool,
+    pub last_block_id: RectId,
 }
 
 pub fn gen_start_field(test_case: &TestCase) -> Array2D<Color> {
@@ -133,11 +134,30 @@ pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
                 rects.remove(id1);
                 rects.remove(id2);
             }
+            Op::Swap(id1, id2) => {
+                let r1 = *rects.get(id1).unwrap();
+                let r2 = *rects.get(id2).unwrap();
+                for x in r1.from.x..r1.to.x {
+                    for y in r1.from.y..r1.to.y {
+                        let x2 = (x + r2.from.x - r1.from.x) as usize;
+                        let y2 = (y + r2.from.y - r1.from.y) as usize;
+
+                        let x = x as usize;
+                        let y = y as usize;
+
+                        let tmp = a[x][y];
+                        a[x][y] = a[x2][y2];
+                        a[x2][y2] = tmp;
+                    }
+                }
+                cost += (SWAP_COST * canvas_size / r1.size()).round();
+            }
         }
     }
     ApplyOpsResult {
         picture: a,
         only_ops_cost: cost,
         only_colored_top_right,
+        last_block_id: rect_id_from_usize(last_rect_id),
     }
 }
