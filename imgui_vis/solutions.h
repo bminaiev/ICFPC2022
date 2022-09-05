@@ -2,6 +2,8 @@
 
 #include "common.h"
 
+#include <iomanip>
+
 constexpr int tColor = 1;
 constexpr int tSplitPoint = 2;
 constexpr int tSplitX = 3;
@@ -209,9 +211,11 @@ struct Painter {
     }
 
     bool doSplitX(const string& i, int x) {
+        // cerr << "doSplitX " << i << " " << x << endl;
         if (blocks.find(i) == blocks.end())
             return false;
         const auto& b = blocks[i];
+        // cerr << "this block is " << b.r1 << "," << b.c1 << " - " << b.r2 << "," << b.c2 << endl;
         if (x <= b.c1 || x >= b.c2) return false;
         opsScore += round(costs.splitLine * N * M / ((b.r2 - b.r1) * (b.c2 - b.c1)));
         Block left = b;
@@ -310,6 +314,7 @@ struct Painter {
         blocks.erase(blocks.find(i2));
         lastBlockId++;
         blocks[to_string(lastBlockId)] = nb;
+        // cerr << "new block: " << lastBlockId << endl;
         return true;
     }
 
@@ -663,7 +668,134 @@ pair<Solution, int> getThreeStepMerge(int blocksPerSide, int blockSize, int line
     return {res, nextBlockId - 1};
 }
 
+int mergeCost(int a, int b) {
+    return round(costs.merge * N * N / max(a, b));
+}
+
+int splitLineCost(int s) {
+    return round(costs.splitLine * N * N / s);
+}
+
+pair<Solution, int> linesMerge() {
+    const int B = round(sqrt(rawBlocks.size()));
+    const int BS = N / B;
+    assert(N == M);
+
+    vector<vector<string>> blocks(B, vector<string>(B));
+    for (int i = 0; i < B; i++)
+        for (int j = 0; j < B; j++)
+            blocks[i][j] = to_string(i + j * B);
+
+    Solution res;
+    int nextBlockId = B * B;
+
+    auto getSize = [&](const string& ii) {
+        int cnt = 0;
+        for (int i = 0; i < B; i++)
+            for (int j = 0; j < B; j++)
+                cnt += blocks[i][j] == ii;
+        return cnt;
+    };
+
+    auto makeMerge = [&](string i1, string i2) {
+        res.ins.push_back(MergeIns(i1, i2));
+        res.score += mergeCost(getSize(i1), getSize(i2));
+        string sid = to_string(nextBlockId);
+        nextBlockId++;
+        for (int i = 0; i < B; i++)
+            for (int j = 0; j < B; j++)
+                if (blocks[i][j] == i1 || blocks[i][j] == i2)
+                    blocks[i][j] = sid;
+    };
+
+    auto makeSplitX = [&](string ii, int val) {
+        res.ins.push_back(SplitXIns(ii, val * BS));
+        res.score += splitLineCost(getSize(ii));
+        string id1 = ii + ".0";
+        string id2 = ii + ".1";
+        // cerr << blocks[1][2] << " " << ii << " " << (blocks[1][2] == ii) << " B = " << B << endl;
+        for (int i = 0; i < B; i++)
+            for (int j = 0; j < B; j++) 
+                if (blocks[i][j] == ii) {
+                    // cerr << "setting " << i << " " << j << endl;
+                    if (j < val) {
+                        // cerr << "setting " << i << " " << j << " to " << id1 << endl;
+                        blocks[i][j] = id1;
+                    }
+                    else {
+                        // cerr << "setting " << i << " " << j << " to " << id2 << endl;
+                        blocks[i][j] = id2;
+                    }
+                }
+    };
+
+    auto makeSplitY = [&](string ii, int val) {
+        res.ins.push_back(SplitYIns(ii, val * BS));
+        res.score += splitLineCost(getSize(ii));
+        string id1 = ii + ".0";
+        string id2 = ii + ".1";
+        for (int i = 0; i < B; i++)
+            for (int j = 0; j < B; j++)
+                if (blocks[i][j] == ii) {
+                    if (i < val)
+                        blocks[i][j] = id1;
+                    else
+                        blocks[i][j] = id2;
+                }
+    };
+
+    for (int i = 2; i < B; i++) {
+        makeMerge(blocks[i][0], blocks[i-1][0]);
+    }
+    for (int i = 2; i < B; i++) {
+        makeMerge(blocks[0][i], blocks[0][i-1]);
+    }
+
+    for (int w = 1; w < B - 1; w++) {
+        makeSplitX(blocks[w-1][w], w + 1);
+        for (int i = w; i < B; i++) {
+            makeMerge(blocks[i][w], blocks[i-1][w]);
+        }
+        makeSplitY(blocks[w][w], w);
+        makeMerge(blocks[w][w], blocks[w][w-1]);
+        makeMerge(blocks[w-1][w], blocks[w-1][w-1]);
+        
+        makeSplitY(blocks[w][w], w + 1);
+        for (int j = w + 1; j < B; j++)
+            makeMerge(blocks[w][j], blocks[w][j-1]);
+
+        // for (int i = 0; i < B; i++) {
+        //     for (int j = 0; j < B; j++)
+        //         cerr << std::setw(7) << blocks[i][j];
+        //     fprintf(stderr, "\n");
+        // }
+        
+        // cerr << "makeSplitX " << w << "," << w << " " << w + 1 << endl;
+        makeSplitX(blocks[w][w], w + 1);
+
+        // for (int i = 0; i < B; i++) {
+        //     for (int j = 0; j < B; j++)
+        //         cerr << std::setw(7) << blocks[i][j];
+        //     fprintf(stderr, "\n");
+        // }
+        // cerr << "--------------------------------------------------------------\n";
+
+        makeMerge(blocks[w][w], blocks[w-1][w]);
+        makeMerge(blocks[w][w+1], blocks[w-1][w+1]);
+    }
+
+    makeMerge(blocks[B-1][B-1], blocks[B-2][B-1]);
+    makeMerge(blocks[B-1][B-2], blocks[B-2][B-2]);
+    makeMerge(blocks[B-1][B-1], blocks[B-1][B-2]);
+
+    // for (const auto& i : res.ins)
+    //     cerr << i.text() << endl;
+
+    return {res, nextBlockId - 1};
+}
+
 pair<Solution, int> initialMerge() {
+    return linesMerge();
     Solution res;
     int blocksPerSide = round(sqrt(rawBlocks.size()));
     assert(N == M);
