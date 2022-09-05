@@ -805,8 +805,371 @@ pair<Solution, int> linesMerge() {
     return {res, nextBlockId - 1};
 }
 
+pair<Solution, int> dpMerge() {
+    const int B = round(sqrt(rawBlocks.size()));
+    const int BS = N / B;
+    const int BSq = BS * BS;
+    assert(N == M);
+
+    vector<vector<string>> blocks(B, vector<string>(B));
+    for (int i = 0; i < B; i++)
+        for (int j = 0; j < B; j++)
+            blocks[i][j] = to_string(i + j * B);
+
+    Solution res;
+    res.score = 0;
+    int nextBlockId = B * B;
+
+    auto getSize = [&](const string& ii) {
+        int cnt = 0;
+        for (int i = 0; i < B; i++)
+            for (int j = 0; j < B; j++)
+                cnt += blocks[i][j] == ii;
+        return cnt * BSq;
+    };
+
+    auto makeMerge = [&](string i1, string i2) {
+        res.ins.push_back(MergeIns(i1, i2));
+        res.score += mergeCost(getSize(i1), getSize(i2));
+        string sid = to_string(nextBlockId);
+        nextBlockId++;
+        for (int i = 0; i < B; i++)
+            for (int j = 0; j < B; j++)
+                if (blocks[i][j] == i1 || blocks[i][j] == i2)
+                    blocks[i][j] = sid;
+    };
+
+    auto makeSplitX = [&](string ii, int val) {
+        res.ins.push_back(SplitXIns(ii, val * BS));
+        res.score += splitLineCost(getSize(ii));
+        string id1 = ii + ".0";
+        string id2 = ii + ".1";
+        for (int i = 0; i < B; i++)
+            for (int j = 0; j < B; j++) 
+                if (blocks[i][j] == ii) {
+                    if (j < val) {
+                        blocks[i][j] = id1;
+                    }
+                    else {
+                        blocks[i][j] = id2;
+                    }
+                }
+    };
+
+    cerr << "! " << res.score << endl;
+
+    auto makeSplitY = [&](string ii, int val) {
+        res.ins.push_back(SplitYIns(ii, val * BS));
+        res.score += splitLineCost(getSize(ii));
+        string id1 = ii + ".0";
+        string id2 = ii + ".1";
+        for (int i = 0; i < B; i++)
+            for (int j = 0; j < B; j++)
+                if (blocks[i][j] == ii) {
+                    if (i < val)
+                        blocks[i][j] = id1;
+                    else
+                        blocks[i][j] = id2;
+                }
+    };
+
+    const int inf = (int) 1e9;
+    vector<vector<long long>> f1(B + 1, vector<long long>(B + 1, inf));
+    vector<vector<long long>> f2(B + 1, vector<long long>(B + 1, inf));
+    vector<vector<pair<int, int>>> pr1(B + 1, vector<pair<int, int>>(B + 1));
+    vector<vector<int>> pt1(B + 1, vector<int>(B + 1));
+    vector<vector<pair<int, int>>> pr2(B + 1, vector<pair<int, int>>(B + 1));
+    vector<vector<int>> pt2(B + 1, vector<int>(B + 1));
+    f1[0][0] = f2[0][0] = 0;
+    int best = inf;
+    int bi = -1;
+    int bj = -1;
+    for (int i = 0; i <= B; i++) {
+      for (int j = 0; j <= B; j++) {
+        cerr << i << " " << j << " " << f1[i][j] << " " << f2[i][j] << endl;
+        if (i == B && j == B) {
+          continue;
+        }
+        if (i == B && j < B) {
+          if (f1[i][j] < best) {
+            best = f1[i][j];
+            bi = i;
+            bj = j;
+          }
+          continue;
+        }
+        if (i < B && j == B) {
+          if (f2[i][j] < best) {
+            best = f2[i][j];
+            bi = i;
+            bj = j;
+          }
+          continue;
+        }
+        {
+          for (int j2 = j + 1; j2 <= B; j2++) {
+            long long ft = f1[i][j];
+            if (i > 0 && j > 0) {
+              ft += llround(7.0 * B * B / i / B);
+            }
+            for (int col = j; col < j2; col++) {
+              if (i > 0 && col < B - 1) {
+                ft += llround(7.0 * B * B / i / (B - col));
+              }
+              for (int row = i; row < B; row++) {
+                if (row > 0) {
+                  ft += llround(1.0 * B * B / row / 1);
+                }
+              }
+            }
+            for (int col = j; col < j2 - 1; col++) {
+              ft += llround(1.0 * B * B / B / (col - j + 1));
+            }
+            if (i > 0 && j > 0) {
+              ft += llround(1.0 * B * B / max(i, B - i) / j);
+            }
+            if (j > 0) {
+              ft += llround(1.0 * B * B / B / max(j, j2 - j));
+            }
+            if (ft < f2[i][j2]) {
+              f2[i][j2] = ft;
+              pr2[i][j2] = make_pair(i, j);
+              pt2[i][j2] = 1;
+            }
+          }
+        }
+        {
+          for (int j2 = j + 1; j2 <= B; j2++) {
+            long long ft = f1[i][j];
+            if (i > 0 && j2 < B) {
+              ft += llround(7.0 * B * B / i / B);
+            }
+            for (int col = j2 - 1; col >= j; col--) {
+              if (i > 0 && col > 0) {
+                ft += llround(7.0 * B * B / i / (col + 1));
+              }
+              for (int row = i; row < B; row++) {
+                if (row > 0) {
+                  ft += llround(1.0 * B * B / row / 1);
+                }
+              }
+            }
+            for (int col = j; col < j2 - 1; col++) {
+              ft += llround(1.0 * B * B / B / (col - j + 1));
+            }
+            if (i > 0 && j > 0) {
+              ft += llround(1.0 * B * B / max(i, B - i) / j);
+            }
+            if (j > 0) {
+              ft += llround(1.0 * B * B / B / max(j, j2 - j));
+            }
+            if (ft < f2[i][j2]) {
+              f2[i][j2] = ft;
+              pr2[i][j2] = make_pair(i, j);
+              pt2[i][j2] = 2;
+            }
+          }
+        }
+        {
+          for (int i2 = i + 1; i2 <= B; i2++) {
+            long long ft = f2[i][j];
+            if (i > 0 && j > 0) {
+              ft += llround(7.0 * B * B / B / i);
+            }
+            for (int row = i; row < i2; row++) {
+              if (j > 0 && row < B - 1) {
+                ft += llround(7.0 * B * B / (B - row) / j);
+              }
+              for (int col = j; col < B; col++) {
+                if (col > 0) {
+                  ft += llround(1.0 * B * B / col / 1);
+                }
+              }
+            }
+            for (int row = i; row < i2 - 1; row++) {
+              ft += llround(1.0 * B * B / (row - i + 1) / B);
+            }
+            if (i > 0 && j > 0) {
+              ft += llround(1.0 * B * B / i / max(j, B - j));
+            }
+            if (i > 0) {
+              ft += llround(1.0 * B * B / max(i, i2 - i) / B);
+            }
+            if (ft < f1[i2][j]) {
+              f1[i2][j] = ft;
+              pr1[i2][j] = make_pair(i, j);
+              pt1[i2][j] = 1;
+            }
+          }
+        }
+        {
+          for (int i2 = i + 1; i2 <= B; i2++) {
+            long long ft = f2[i][j];
+            if (j > 0 && i2 < B) {
+              ft += llround(7.0 * B * B / B / j);
+            }
+            for (int row = i2 - 1; row >= i; row--) {
+              if (j > 0 && row > 0) {
+                ft += llround(7.0 * B * B / (row + 1) / j);
+              }
+              for (int col = j; col < B; col++) {
+                if (col > 0) {
+                  ft += llround(1.0 * B * B / col / 1);
+                }
+              }
+            }
+            for (int row = i; row < i2 - 1; row++) {
+              ft += llround(1.0 * B * B / (row - i + 1) / B);
+            }
+            if (i > 0 && j > 0) {
+              ft += llround(1.0 * B * B / i / max(j, B - j));
+            }
+            if (i > 0) {
+              ft += llround(1.0 * B * B / max(i, i2 - i) / B);
+            }
+            if (ft < f1[i2][j]) {
+              f1[i2][j] = ft;
+              pr1[i2][j] = make_pair(i, j);
+              pt1[i2][j] = 2;
+            }
+          }
+        }
+      }
+    }
+
+    cerr << "best = " << best << endl;
+    
+    vector<pair<int, int>> path(1, make_pair(bi, bj));
+    vector<int> helpers;
+    int flag = (bi == B ? 1 : 2);
+    while (path.back() != make_pair(0, 0)) {
+      if (flag == 1) {
+        helpers.push_back(pt1[path.back().first][path.back().second]);
+        path.push_back(pr1[path.back().first][path.back().second]);
+      } else {
+        helpers.push_back(pt2[path.back().first][path.back().second]);
+        path.push_back(pr2[path.back().first][path.back().second]);
+      }
+      flag = 3 - flag;
+    }
+    reverse(path.begin(), path.end());
+    reverse(helpers.begin(), helpers.end());
+
+    for (int i = 0; i < (int) path.size(); i++) {
+      cerr << path[i].first << " " << path[i].second << " " << (i < (int) helpers.size() ? helpers[i] : -1) << endl;
+    }
+
+    for (int it = 0; it < (int) path.size() - 1; it++) {
+      int i = path[it].first;
+      int j = path[it].second;
+      int i2 = path[it + 1].first;
+      int j2 = path[it + 1].second;
+      cerr << i << " " << j << " " << i2 << " " << j2 << endl;
+      if (j2 > j) {
+        if (helpers[it] == 1) {
+          if (i > 0 && j > 0) {
+//            ft += llround(7.0 * B * B / i / B);
+            makeSplitX(blocks[0][0], j);
+          }
+          for (int col = j; col < j2; col++) {
+            if (i > 0 && col < B - 1) {
+//              ft += llround(7.0 * B * B / i / (B - col));
+              makeSplitX(blocks[0][B - 1], col + 1);
+            }
+          }
+        } else {
+          if (i > 0 && j2 < B) {
+//            ft += llround(7.0 * B * B / i / B);
+            makeSplitX(blocks[0][0], j2);
+          }
+          for (int col = j2 - 1; col >= j; col--) {
+            if (i > 0 && col > 0) {
+//              ft += llround(7.0 * B * B / i / (col + 1));
+              makeSplitX(blocks[0][0], col);
+            }
+          }
+        }
+        for (int col = j; col < j2; col++) {
+          for (int row = i; row < B; row++) {
+            if (row > 0) {
+//              ft += llround(1.0 * B * B / row / 1);
+              makeMerge(blocks[row][col], blocks[row - 1][col]);
+            }
+          }
+        }
+        for (int col = j; col < j2 - 1; col++) {
+//          ft += llround(1.0 * B * B / B / (col - j + 1));
+          makeMerge(blocks[0][col], blocks[0][col + 1]);
+        }
+        if (i > 0 && j > 0) {
+//          ft += llround(1.0 * B * B / max(i, B - i) / j);
+          makeMerge(blocks[0][0], blocks[B - 1][0]);
+        }
+        if (j > 0) {
+//          ft += llround(1.0 * B * B / B / max(j, j2 - j));
+          makeMerge(blocks[0][0], blocks[0][j]);
+        }
+      } else {
+        if (helpers[it] == 1) {
+          if (i > 0 && j > 0) {
+//            ft += llround(7.0 * B * B / B / i);
+            makeSplitY(blocks[0][0], i);
+          }
+          for (int row = i; row < i2; row++) {
+            if (j > 0 && row < B - 1) {
+//              ft += llround(7.0 * B * B / (B - row) / j);
+              makeSplitY(blocks[B - 1][0], row + 1);
+            }
+          }
+        } else {
+          if (j > 0 && i2 < B) {
+//            ft += llround(7.0 * B * B / B / j);
+            makeSplitY(blocks[0][0], i2);
+          }
+          for (int row = i2 - 1; row >= i; row--) {
+            if (j > 0 && row > 0) {
+//              ft += llround(7.0 * B * B / (row + 1) / j);
+              makeSplitY(blocks[0][0], row);
+            }
+          }
+        }
+        for (int row = i; row < i2; row++) {
+          for (int col = j; col < B; col++) {
+            if (col > 0) {
+//              ft += llround(1.0 * B * B / col / 1);
+              makeMerge(blocks[row][col], blocks[row][col - 1]);
+            }
+          }
+        }
+        for (int row = i; row < i2 - 1; row++) {
+//          ft += llround(1.0 * B * B / (row - i + 1) / B);
+          makeMerge(blocks[row][0], blocks[row + 1][0]);
+        }
+        if (i > 0 && j > 0) {
+//          ft += llround(1.0 * B * B / i / max(j, B - j));
+          makeMerge(blocks[0][0], blocks[0][B - 1]);
+        }
+        if (i > 0) {
+//          ft += llround(1.0 * B * B / max(i, i2 - i) / B);
+          makeMerge(blocks[0][0], blocks[i][0]);
+        }
+      }
+      for (int i = 0; i < B; i++) {
+        for (int j = 0; j < B; j++) cerr << blocks[i][j] << " \n"[j == B - 1];
+      }
+    }
+
+
+    for (const auto& i : res.ins)
+        cerr << i.text() << endl;
+
+    cerr << "lines merge score: " << res.score << endl;
+    return {res, nextBlockId - 1};
+}
+
 pair<Solution, int> initialMerge() {
-    return linesMerge();
+    return dpMerge();
+//    return dpMerge();
     Solution res;
     int blocksPerSide = round(sqrt(rawBlocks.size()));
     assert(N == M);
@@ -859,6 +1222,7 @@ pair<Solution, int> initialMerge() {
     
     return {res, nextBlockId - 1};
 }
+
 
 int PaintCost(int x, int y) {
   assert(x > 0 && y > 0);
