@@ -27,8 +27,8 @@ use crate::{
     pixel_dist::get_pixel_distance,
     really_local_optimizations::StripeSwap,
     rotator::{self, Rotator},
-    savings::{save_image, save_solution},
-    solver::{SolutionRect, SolutionRes},
+    savings::{save_image, save_ops, save_solution},
+    solver::{solve_one, SolutionRect, SolutionRes},
     test_case::TestCase,
     utils::{is_point_inside, p},
     Point,
@@ -191,28 +191,45 @@ pub fn task40(
     let sum_ops = calc_cost_of_rects(&rects);
     dbg!(sum_ops);
 
-    let mut best_stripe = StripeSwap {
-        cnt_lines: 129,
+    let mut str1 = StripeSwap {
+        cnt_lines: 120,
         first_line: 0,
-        second_line: 161,
+        second_line: 120,
         by_x: false,
     };
     for _ in 0..1 {
-        best_stripe = best_stripe.rotate_cw(test_case);
+        str1 = str1.rotate_cw(test_case);
     }
-    dbg!(best_stripe);
+    dbg!(str1);
+
+    let mut str2 = StripeSwap {
+        cnt_lines: 120,
+        first_line: 120,
+        second_line: 240,
+        by_x: false,
+    };
+    for _ in 0..1 {
+        str2 = str2.rotate_cw(test_case);
+    }
 
     assert!(test_case.regions.len() == 1);
     let new_testcase = TestCase {
-        start_field: best_stripe.apply_field(&test_case.start_field),
-        expected: best_stripe.apply_field(&test_case.expected),
+        start_field: str2.apply_field(&str1.apply_field(&test_case.start_field)),
+        expected: str2.apply_field(&str1.apply_field(&test_case.expected)),
         test_id: test_case.test_id,
         regions: test_case.regions.clone(),
     };
 
-    save_image(&new_testcase.expected, "../images/task40.expected.png");
+    save_image(
+        &new_testcase.expected,
+        &format!("../images/task{}.expected.png", test_case.test_id),
+    );
 
-    let mut new_rects = rects;
+    let solution = solve_one(&new_testcase, 5, true);
+
+    let mut new_rects = gen_rects_by_ops(&solution.ops, n, m);
+
+    // let mut new_rects = rects;
 
     let mut last_exp_score = FMAX;
     loop {
@@ -225,32 +242,40 @@ pub fn task40(
 
             {
                 let mut new_sol = rotator.rotate_sol(call_real_opts);
-                let mut rotated_stripe = best_stripe;
-                for _ in 0..rotator.rotations_to_answer() {
-                    rotated_stripe = rotated_stripe.rotate_cw(test_case);
+                for ss in [str2, str1].iter() {
+                    let mut rotated_stripe = ss.clone();
+                    for _ in 0..rotator.rotations_to_answer() {
+                        rotated_stripe = rotated_stripe.rotate_cw(test_case);
+                    }
+                    new_sol.add_stripe_swap(&rotated_stripe, test_case);
                 }
-                new_sol.add_stripe_swap(&rotated_stripe, test_case);
 
                 let final_seq_of_ops = new_sol.ops;
-                let initial_test_case = rotator.get_initial_test_case();
-                for x in 0..n {
-                    for y in 0..n {
-                        assert_eq!(
-                            initial_test_case.expected[x][y],
-                            test_case_before_rot.expected[x][y]
-                        );
-                    }
-                }
-                // let final_ops_res = apply_ops(&final_seq_of_ops, &initial_test_case);
-                // let pixel_diff =
-                //     get_pixel_distance(&final_ops_res.picture, &initial_test_case.expected);
 
-                let new_sol = SolutionRes::new_from_ops(&initial_test_case, &final_seq_of_ops);
-                dbg!(new_sol.expected_score);
-                save_image(&new_sol.a, "../images/last.check.png");
-                save_image(&initial_test_case.expected, "../images/last.exp.check.png");
+                save_ops(
+                    &final_seq_of_ops,
+                    &format!("../outputs/{}.isl", 300 + test_case.test_id),
+                )
 
-                save_solution(100 + test_case.test_id, &new_sol);
+                // let initial_test_case = rotator.get_initial_test_case();
+                // for x in 0..n {
+                //     for y in 0..n {
+                //         assert_eq!(
+                //             initial_test_case.expected[x][y],
+                //             test_case_before_rot.expected[x][y]
+                //         );
+                //     }
+                // }
+                // // let final_ops_res = apply_ops(&final_seq_of_ops, &initial_test_case);
+                // // let pixel_diff =
+                // //     get_pixel_distance(&final_ops_res.picture, &initial_test_case.expected);
+
+                // let new_sol = SolutionRes::new_from_ops(&initial_test_case, &final_seq_of_ops);
+                // dbg!(new_sol.expected_score);
+                // save_image(&new_sol.a, "../images/last.check.png");
+                // save_image(&initial_test_case.expected, "../images/last.exp.check.png");
+
+                // save_solution(300 + test_case.test_id, &new_sol);
             }
         }
     }

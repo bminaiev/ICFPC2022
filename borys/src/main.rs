@@ -154,8 +154,7 @@ fn analyze_here(test_id: usize) {
     dbg!(start.elapsed());
 }
 
-fn task40_solver() {
-    let test_id = 40;
+fn task40_solver(test_id: usize) {
     let mut rnd = Random::new_time_seed();
     let start = Instant::now();
 
@@ -189,7 +188,7 @@ fn main() {
     }
 
     {
-        task40_solver();
+        task40_solver(5);
         if true {
             return;
         }
