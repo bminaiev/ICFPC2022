@@ -261,29 +261,10 @@ fn restore_rects_by_field(need: &Array2D<Color>, test_case: &TestCase) -> Vec<So
         }
     }
     assert!(res.len() == sorted_res.len());
-    dbg!(sorted_res.len());
 
     let new_field = gen_field_by_rects(&sorted_res, test_case);
     for x in 0..n {
         for y in 0..m {
-            if new_field[x][y] != need[x][y] {
-                dbg!(x, y);
-                dbg!(covered_by[x][y]);
-                dbg!(covered_by[x - 1][y]);
-                dbg!(covered_by[x][y - 1]);
-                dbg!(res[covered_by[x - 1][y]].color);
-                dbg!(res[covered_by[x][y - 1]].color);
-                dbg!(need[x][y]);
-                dbg!(after[33][44]);
-                dbg!(after[44][33]);
-                let r1 = res[covered_by[x - 1][y]];
-                let r2 = res[covered_by[x][y - 1]];
-                let p1 = sorted_res.iter().position(|z| z == &r1).unwrap();
-                let p2 = sorted_res.iter().position(|z| z == &r2).unwrap();
-                dbg!(p1, p2);
-                dbg!(sorted_res[67]);
-                dbg!(sorted_res[68]);
-            }
             assert_eq!(new_field[x][y], need[x][y]);
         }
     }
@@ -393,6 +374,30 @@ pub fn really_optimize_positions(
 
     dbg!(best_stripe);
     dbg!(sum_ops - best_cost);
+    let mut best_new_rects_cost = FMAX;
+
+    let my_current = gen_field_by_rects(&rects, test_case);
+
+    for it in 0..500 {
+        let stripe = StripeSwap {
+            cnt_lines: rnd.gen(30..n),
+            first_line: rnd.gen(1..5),
+            second_line: rnd.gen(1..n),
+            by_x: rnd.gen_bool(),
+        };
+        if stripe.first_line + stripe.cnt_lines < stripe.second_line
+            && stripe.second_line + stripe.cnt_lines <= n
+        {
+            let my_current_target = stripe.apply_field(&my_current);
+
+            let new_rects = restore_rects_by_field(&my_current_target, test_case);
+            let new_rects_cost = calc_cost_of_rects(&new_rects);
+            if new_rects_cost < best_new_rects_cost {
+                best_new_rects_cost = new_rects_cost;
+                best_stripe = stripe;
+            }
+        }
+    }
 
     assert!(test_case.regions.len() == 1);
     let new_testcase = TestCase {
@@ -407,41 +412,9 @@ pub fn really_optimize_positions(
 
     let mut new_rects = restore_rects_by_field(&my_current_target, test_case);
     let new_rects_cost = calc_cost_of_rects(&new_rects);
-    dbg!(new_rects_cost);
+    dbg!(new_rects_cost, new_rects_cost - sum_ops);
 
-    // let mut new_rects = vec![];
-    // shrink_rects(&mut rects, n, m);
-    // for (id, r) in rects.iter().enumerate() {
-    //     let p1 = r.from;
-    //     let p2 = r.to;
-    //     let t1 = best_lines.get_pt_type(p1.x as usize, p1.y as usize);
-    //     let t2 = best_lines.get_pt_type(p2.x as usize - 1, p2.y as usize - 1);
-    //     if t1 == t2 {
-    //         let ntype = if t1 == 1 {
-    //             3
-    //         } else if t1 == 3 {
-    //             1
-    //         } else {
-    //             t1
-    //         };
-    //         let nfrom = best_lines.apply_point_for_real(r.from);
-    //         dbg!(id, ntype, p1.x, nfrom.x);
-    //         new_rects.push((
-    //             ntype,
-    //             id,
-    //             SolutionRect {
-    //                 color: r.color,
-    //                 to: r.to,
-    //                 from: nfrom,
-    //             },
-    //         ));
-    //     }
-    // }
-    // new_rects.sort_by_key(|&(a, b, c)| (a, b));
-
-    // let mut new_rects: Vec<_> = new_rects.into_iter().map(|(_, _, r)| r).collect();
     let mut last_exp_score = FMAX;
-    save_image(&new_testcase.expected, "../images/last.expected.png");
     loop {
         let call_real_opts = optimize_positions(&new_rects, rnd, &new_testcase);
         dbg!(call_real_opts.expected_score, last_exp_score);

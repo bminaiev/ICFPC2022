@@ -328,7 +328,38 @@ impl SolutionRes {
         };
 
         if stripe.by_x {
-            todo!();
+            if stripe.first_line == 0 {
+                self.ops.push(Op::CutX(id(&[]), stripe.cnt_lines as i32));
+                first_id = id(&[0]);
+                self.ops.push(Op::CutX(id(&[1]), stripe.second_line as i32));
+                if stripe.second_line + stripe.cnt_lines == n {
+                    second_id = id(&[1, 1]);
+                } else {
+                    self.ops.push(Op::CutX(
+                        id(&[1, 1]),
+                        (stripe.second_line + stripe.cnt_lines) as i32,
+                    ));
+                    second_id = id(&[1, 1, 0]);
+                }
+            } else {
+                self.ops.push(Op::CutX(id(&[]), stripe.first_line as i32));
+                self.ops.push(Op::CutX(
+                    id(&[1]),
+                    (stripe.first_line + stripe.cnt_lines) as i32,
+                ));
+                first_id = id(&[1, 0]);
+                self.ops
+                    .push(Op::CutX(id(&[1, 1]), (stripe.second_line) as i32));
+                if stripe.second_line + stripe.cnt_lines == n {
+                    todo!()
+                } else {
+                    self.ops.push(Op::CutX(
+                        id(&[1, 1, 1]),
+                        (stripe.second_line + stripe.cnt_lines) as i32,
+                    ));
+                    second_id = id(&[1, 1, 1, 0]);
+                }
+            }
         } else {
             if stripe.first_line == 0 {
                 self.ops.push(Op::CutY(id(&[]), stripe.cnt_lines as i32));
@@ -344,7 +375,23 @@ impl SolutionRes {
                     second_id = id(&[1, 1, 0]);
                 }
             } else {
-                todo!();
+                self.ops.push(Op::CutY(id(&[]), stripe.first_line as i32));
+                self.ops.push(Op::CutY(
+                    id(&[1]),
+                    (stripe.first_line + stripe.cnt_lines) as i32,
+                ));
+                first_id = id(&[1, 0]);
+                self.ops
+                    .push(Op::CutY(id(&[1, 1]), (stripe.second_line) as i32));
+                if stripe.second_line + stripe.cnt_lines == n {
+                    todo!()
+                } else {
+                    self.ops.push(Op::CutY(
+                        id(&[1, 1, 1]),
+                        (stripe.second_line + stripe.cnt_lines) as i32,
+                    ));
+                    second_id = id(&[1, 1, 1, 0]);
+                }
             }
         }
 

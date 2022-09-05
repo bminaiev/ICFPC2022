@@ -123,9 +123,18 @@ fn really_local_optimize(test_id: usize) {
 }
 
 fn main() {
+    let args: Vec<_> = std::env::args().collect();
+    dbg!(args);
+    if args.len() == 3 && args[1] == "swaps" {
+        let test_id: usize = args[2].parse().unwrap();
+        dbg!("run specific swaps...", test_id);
+        really_local_optimize(test_id);
+        return;
+    }
+
     // solve_all();
-    const TEST_ID: usize = 5;
-    really_local_optimize(TEST_ID);
+    // const TEST_ID: usize = 24;
+    // really_local_optimize(TEST_ID);
     // if true {
     //     return;
     // }
@@ -137,7 +146,11 @@ fn main() {
     // loop {
     //     dbg!("NEXT ITERATION!!!");
     loop {
-        for test_id in TEST_ID..=TEST_ID {
+        let bad_tests = [4, 5, 40, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35];
+        for test_id in 1..=40 {
+            if bad_tests.contains(&test_id) {
+                continue;
+            }
             dbg!(test_id);
             // loop {
             local_optimize(test_id);
