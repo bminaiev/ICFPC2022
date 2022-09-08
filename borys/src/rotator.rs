@@ -127,7 +127,7 @@ impl Rotator {
         let (n, m) = test_case.get_size();
         assert!(n == m);
         for rotated in 0..4 {
-            let apply_res = apply_ops(&ops, &test_case);
+            let apply_res = apply_ops(&ops, &test_case, false);
             if apply_res.only_colored_top_right {
                 dbg!("found good rotation", rotated, ops.len());
                 return Self {

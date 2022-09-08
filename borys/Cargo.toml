@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 algo_lib = {git = "https://github.com/BorysMinaiev/rust-contests"}
 image = "0.24.3"
+gif = "0.11.4"
 
 [profile.release]
 debug = 1

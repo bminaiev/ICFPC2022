@@ -6,6 +6,7 @@ mod color;
 
 use crate::{
     analyze::analyze,
+    gifs::gen_gif,
     interpreter::apply_ops,
     local_optimizations::{optimize_colors, optimize_positions},
     ops_by_rects::gen_rects_by_ops,
@@ -21,6 +22,7 @@ mod analyze;
 mod color_corner;
 mod color_picker;
 mod consts;
+mod gifs;
 mod interpreter;
 mod local_optimizations;
 mod merger;
@@ -214,9 +216,9 @@ fn main() {
             //     continue;
             // }
             dbg!(test_id);
-            // loop {
+    // loop {
             local_optimize(test_id);
-            // }
+    // }
             // solve_fast(test_id);
             // solve_case(test_id, 6, true);
         }

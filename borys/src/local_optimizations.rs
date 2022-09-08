@@ -109,7 +109,7 @@ pub fn optimize_colors(
 ) -> SolutionRes {
     let (n, m) = test_case.get_size();
     let expected = &test_case.expected;
-    let final_res = apply_ops(ops, test_case);
+    let final_res = apply_ops(ops, test_case, false);
     let pixel_dist = get_pixel_distance(&final_res.picture, &expected);
 
     let my = gen_field_by_rects(rects, test_case);
@@ -142,7 +142,7 @@ pub fn optimize_colors(
 
     shrink_rects(&mut new_rects, n, m);
     let new_ops = gen_ops_by_solution_rects(&new_rects, n, m, merge_result, test_case);
-    let final_res2 = apply_ops(&new_ops, test_case);
+    let final_res2 = apply_ops(&new_ops, test_case, false);
     let pixel_dist3 = get_pixel_distance(&final_res2.picture, &expected);
     // dbg!(final_res2.only_ops_cost + pixel_dist3);
     SolutionRes {
@@ -173,7 +173,7 @@ pub fn optimize_positions(
     let (n, m) = test_case.get_size();
 
     let merge_result = merge(test_case);
-    let merge_cost = apply_ops(&merge_result.ops, test_case).only_ops_cost;
+    let merge_cost = apply_ops(&merge_result.ops, test_case, false).only_ops_cost;
 
     let mut my_score = score_by_rects(&rects, test_case, merge_cost);
     let start_score = my_score;
@@ -298,7 +298,7 @@ pub fn optimize_positions(
 
     shrink_rects(&mut rects, n, m);
     let new_ops = gen_ops_by_solution_rects(&rects, n, m, &merge_result, test_case);
-    let final_res2 = apply_ops(&new_ops, test_case);
+    let final_res2 = apply_ops(&new_ops, test_case, false);
     let pixel_dist3 = get_pixel_distance(&final_res2.picture, &test_case.expected);
     // dbg!(final_res2.only_ops_cost + pixel_dist3);
     let r = SolutionRes {

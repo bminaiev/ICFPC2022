@@ -7,7 +7,7 @@ use crate::{
     interpreter::apply_ops,
     op::Op,
     rect_id::{rect_id_from_usize, rect_id_sub_key, rect_id_to_usize, RectId},
-    test_case::{self, TestCase},
+    test_case::TestCase,
 };
 
 pub struct MergeResult {
@@ -167,7 +167,7 @@ fn gen_ops(test_case: &TestCase, first_lines: usize) -> MergeResult {
             merged_block_id = rect_id_from_usize(last_block_id);
         }
     }
-    let after_apply = apply_ops(&ops, test_case);
+    let after_apply = apply_ops(&ops, test_case, false);
 
     MergeResult {
         ops: ops,

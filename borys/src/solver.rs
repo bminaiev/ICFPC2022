@@ -303,7 +303,7 @@ pub struct SolutionRes {
 
 impl SolutionRes {
     pub fn new_from_ops(test_case: &TestCase, ops: &[Op]) -> Self {
-        let res = apply_ops(ops, test_case);
+        let res = apply_ops(ops, test_case, false);
         Self {
             ops: ops.to_vec(),
             expected_score: res.only_ops_cost
@@ -486,7 +486,7 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
 
     dbg!(rects.len());
 
-    let after_merge_ops_applied = apply_ops(&merge_result.ops, test_case);
+    let after_merge_ops_applied = apply_ops(&merge_result.ops, test_case, false);
     let merge_cost = after_merge_ops_applied.only_ops_cost;
     let all_ops: Vec<Op> = gen_ops_by_solution_rects(&rects, n, m, &merge_result, test_case);
     // let mut all_ops = merge_result.ops;
@@ -508,7 +508,7 @@ pub fn solve_one(test_case: &TestCase, block_size: usize, use_third_layer: bool)
         }
     }
 
-    let ops_res = apply_ops(&all_ops, test_case);
+    let ops_res = apply_ops(&all_ops, test_case, false);
     for i in 0..n {
         for j in 0..m {
             assert_eq!(my_picture[i][j], ops_res.picture[i][j]);

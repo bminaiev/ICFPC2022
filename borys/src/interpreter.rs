@@ -20,6 +20,7 @@ pub struct ApplyOpsResult {
     pub only_ops_cost: f64,
     pub only_colored_top_right: bool,
     pub last_block_id: RectId,
+    pub frames: Vec<Frame>,
 }
 
 pub fn gen_start_field(test_case: &TestCase) -> Array2D<Color> {
@@ -37,7 +38,19 @@ pub fn gen_start_field(test_case: &TestCase) -> Array2D<Color> {
     // a
 }
 
-pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
+pub struct Frame {
+    pub rects: Vec<Rect>,
+}
+
+impl Frame {
+    pub fn new(rects: &HashMap<RectId, Rect>) -> Self {
+        Self {
+            rects: rects.values().cloned().collect(),
+        }
+    }
+}
+
+pub fn apply_ops(ops: &[Op], test_case: &TestCase, gen_frames: bool) -> ApplyOpsResult {
     let n = test_case.expected.len();
     let m = test_case.expected[0].len();
 
@@ -52,6 +65,12 @@ pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
 
     let mut last_rect_id = test_case.regions.len() - 1;
     let mut only_colored_top_right = true;
+
+    let mut frames = vec![];
+    if gen_frames {
+        frames.push(Frame::new(&rects));
+    }
+
     for op in ops.iter() {
         match op {
             Op::CutPoint(id, p) => {
@@ -153,11 +172,15 @@ pub fn apply_ops(ops: &[Op], test_case: &TestCase) -> ApplyOpsResult {
                 cost += (SWAP_COST * canvas_size / r1.size()).round();
             }
         }
+        if gen_frames {
+            frames.push(Frame::new(&rects));
+        }
     }
     ApplyOpsResult {
         picture: a,
         only_ops_cost: cost,
         only_colored_top_right,
         last_block_id: rect_id_from_usize(last_rect_id),
+        frames,
     }
 }
